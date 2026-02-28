@@ -1,0 +1,10 @@
+__pycache__/
+*.egg-info/
+.venv/
+uv.lock
+*.md
+benchmark/data/
+benchmark/raw/
+benchmark/results/
+corpus/
+schemas/
