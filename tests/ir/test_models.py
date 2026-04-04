@@ -31,3 +31,7 @@ def test_code_block_carries_no_sentences():
     assert block.sentences == []
 
 
+def test_export_ir_schema(tmp_path: Path):
+    export_ir_schema(tmp_path)
+    schema = json.loads((tmp_path / "workspace-ir.schema.json").read_text())
+    assert schema["title"] == "WorkspaceIR"
