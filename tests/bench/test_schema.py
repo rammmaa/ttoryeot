@@ -47,3 +47,10 @@ def test_span_must_be_within_text():
         )
 
 
+def test_load_items_roundtrip(tmp_path: Path):
+    p = tmp_path / "sentences.jsonl"
+    p.write_text(json.dumps(make_raw(), ensure_ascii=False) + "\n", encoding="utf-8")
+    items = load_items(p)
+    assert len(items) == 1 and items[0].id == "sent-0001"
+
+
