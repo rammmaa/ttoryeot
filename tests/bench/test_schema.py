@@ -40,3 +40,10 @@ def test_negative_example_has_empty_annotations():
     assert item.annotations == []
 
 
+def test_span_must_be_within_text():
+    with pytest.raises(ValidationError):
+        SentenceItem.model_validate(
+            make_raw(annotations=[make_raw()["annotations"][0] | {"span": [0, 999]}])
+        )
+
+
