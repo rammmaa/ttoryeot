@@ -54,3 +54,7 @@ def test_load_items_roundtrip(tmp_path: Path):
     assert len(items) == 1 and items[0].id == "sent-0001"
 
 
+def test_export_json_schema(tmp_path: Path):
+    export_json_schema(tmp_path)
+    schema = json.loads((tmp_path / "sentence-item.schema.json").read_text())
+    assert schema["title"] == "SentenceItem"
