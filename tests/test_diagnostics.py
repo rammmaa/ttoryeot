@@ -27,3 +27,10 @@ def test_diagnostic_construction():
     assert diag.candidates[0].score == 0.48
 
 
+def test_source_range_ordering_validated():
+    import pytest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        rng(end_offset=-1)
+
+
