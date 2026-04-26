@@ -59,3 +59,25 @@ def test_convert_csv_handles_bom(tmp_path: Path):
     assert items[0].id == "sent-0001" and items[1].id == "sent-0002"
 
 
+def test_convert_csv_skips_blank_rows(tmp_path: Path):
+    """빈 행이 스킵되어도 id는 연속성을 유지해야 함"""
+    csv_with_blank = """원문,수정안,오류 분류,판정 이유,근거 URL,확신도,출처,문서 장르
+첫 번째 문장.,수정됨,error_type,이유,,high,fixture,guide
+,,,,,,,
+세 번째 문장입니다.,,,,,high,fixture,guide
+"""
+    csv_p = tmp_path / "survey.csv"
+    csv_p.write_text(csv_with_blank, encoding="utf-8")
+    map_p = tmp_path / "columns.yaml"
+    map_p.write_text(MAPPING, encoding="utf-8")
+    out_p = tmp_path / "sentences.jsonl"
+
+    n = convert_csv(csv_p, map_p, out_p)
+
+    assert n == 2
+    items = load_items(out_p)
+    # 빈 행이 스킵되어도 id는 sent-0001, sent-0002로 연속
+    assert items[0].id == "sent-0001"
+    assert items[1].id == "sent-0002"
+    assert items[0].text == "첫 번째 문장."
+    assert items[1].text == "세 번째 문장입니다."
