@@ -40,3 +40,22 @@ def test_convert_csv(tmp_path: Path):
     assert items[0].id == "sent-0001" and items[1].id == "sent-0002"
 
 
+def test_convert_csv_handles_bom(tmp_path: Path):
+    """Excel에서 내보낸 CSV는 UTF-8 BOM('﻿')이 붙는 경우가 흔하다.
+    BOM이 있어도 결과가 BOM 없는 CSV와 동일해야 한다 (첫 헤더 KeyError 금지)."""
+    csv_p = tmp_path / "survey.csv"
+    csv_p.write_text("﻿" + CSV, encoding="utf-8")
+    map_p = tmp_path / "columns.yaml"
+    map_p.write_text(MAPPING, encoding="utf-8")
+    out_p = tmp_path / "sentences.jsonl"
+
+    n = convert_csv(csv_p, map_p, out_p)
+
+    assert n == 2
+    items = load_items(out_p)
+    assert items[0].annotations[0].category == "style_check"
+    assert items[0].annotations[0].span == (0, len(items[0].text))
+    assert items[1].annotations == []
+    assert items[0].id == "sent-0001" and items[1].id == "sent-0002"
+
+
