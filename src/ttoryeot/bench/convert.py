@@ -10,7 +10,7 @@ def convert_csv(csv_path: Path, mapping_path: Path, out_path: Path) -> int:
     m = yaml.safe_load(mapping_path.read_text(encoding="utf-8"))
     severity = m.get("default_severity", "warning")
     items: list[SentenceItem] = []
-    with csv_path.open(encoding="utf-8") as f:
+    with csv_path.open(encoding="utf-8-sig") as f:
         for i, row in enumerate(csv.DictReader(f), start=1):
             text = row[m["text"]].strip()
             if not text:
@@ -34,7 +34,7 @@ def convert_csv(csv_path: Path, mapping_path: Path, out_path: Path) -> int:
                 )
             items.append(
                 SentenceItem(
-                    id=f"sent-{i:04d}",
+                    id=f"sent-{len(items) + 1:04d}",
                     source=(row.get(m["source"]) or "survey").strip(),
                     document_type=(row.get(m["document_type"]) or "unknown").strip(),
                     text=text,
