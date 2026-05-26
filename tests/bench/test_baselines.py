@@ -24,3 +24,8 @@ def test_substitution_clean_text_no_prediction():
     assert SubstitutionBaseline().predict(item("리크루팅 존을 준비합니다.")) == []
 
 
+def test_regex_finds_spacing():
+    preds = RegexBaseline().predict(item("배포를 준비중입니다."))
+    assert preds and preds[0].category == "spacing"
+
+
