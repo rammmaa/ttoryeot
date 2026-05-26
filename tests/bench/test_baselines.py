@@ -29,3 +29,9 @@ def test_regex_finds_spacing():
     assert preds and preds[0].category == "spacing"
 
 
+def test_naive_ref_fires_on_any_demonstrative():
+    preds = NaiveReferenceBaseline().predict(item("해당 데이터를 저장합니다."))
+    assert preds and preds[0].category == "ambiguous_reference"
+    assert preds[0].span == (0, 7)  # '해당 데이터를' — 나이브 매칭은 조사 포함
+
+
