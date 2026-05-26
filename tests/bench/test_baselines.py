@@ -35,3 +35,5 @@ def test_naive_ref_fires_on_any_demonstrative():
     assert preds[0].span == (0, 7)  # '해당 데이터를' — 나이브 매칭은 조사 포함
 
 
+def test_naive_ref_silent_without_demonstrative():
+    assert NaiveReferenceBaseline().predict(item("조인 결과를 저장합니다.")) == []
