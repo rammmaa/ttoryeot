@@ -31,3 +31,10 @@ def test_wrong_span_is_fp_and_fn():
     assert (s.tp, s.fp, s.fn) == (0, 1, 1)
 
 
+def test_prediction_on_negative_example_is_fp():
+    items = [item("a", "정상 문장입니다.", [])]
+    preds = {"a": [Prediction(span=(0, 2), category="spacing")]}
+    s = score_items(items, preds)["spacing"]
+    assert (s.tp, s.fp, s.fn) == (0, 1, 0)
+
+
