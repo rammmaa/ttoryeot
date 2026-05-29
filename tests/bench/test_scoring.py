@@ -44,3 +44,16 @@ def test_missed_annotation_is_fn():
     assert (s.tp, s.fp, s.fn) == (0, 0, 1)
 
 
+def test_total_aggregates():
+    items = [
+        item("a", "리쿠르팅 존", [ann((0, 4))]),
+        item("b", "정상 문장입니다.", []),
+    ]
+    preds = {
+        "a": [Prediction(span=(0, 4), category="loanword_spelling")],
+        "b": [Prediction(span=(0, 2), category="spacing")],
+    }
+    total = score_items(items, preds)["__total__"]
+    assert (total.tp, total.fp, total.fn) == (1, 1, 0)
+
+
