@@ -57,3 +57,8 @@ def test_total_aggregates():
     assert (total.tp, total.fp, total.fn) == (1, 1, 0)
 
 
+def test_zero_division_guard():
+    s = RuleScore(tp=0, fp=0, fn=0)
+    assert s.precision == 0.0 and s.recall == 0.0 and s.f1 == 0.0
+
+
