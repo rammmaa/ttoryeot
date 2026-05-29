@@ -24,3 +24,10 @@ def test_exact_match_is_tp():
     assert s.precision == 1.0 and s.recall == 1.0
 
 
+def test_wrong_span_is_fp_and_fn():
+    items = [item("a", "리쿠르팅 존을 봅니다", [ann((0, 4))])]
+    preds = {"a": [Prediction(span=(8, 10), category="loanword_spelling")]}
+    s = score_items(items, preds)["loanword_spelling"]
+    assert (s.tp, s.fp, s.fn) == (0, 1, 1)
+
+
