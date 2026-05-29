@@ -16,3 +16,11 @@ def test_spans_overlap():
     assert not spans_overlap((0, 5), (5, 9))
 
 
+def test_exact_match_is_tp():
+    items = [item("a", "리쿠르팅 존", [ann((0, 4))])]
+    preds = {"a": [Prediction(span=(0, 4), category="loanword_spelling")]}
+    s = score_items(items, preds)["loanword_spelling"]
+    assert (s.tp, s.fp, s.fn) == (1, 0, 0)
+    assert s.precision == 1.0 and s.recall == 1.0
+
+
