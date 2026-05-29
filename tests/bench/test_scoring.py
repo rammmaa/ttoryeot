@@ -89,3 +89,28 @@ def test_optimal_matching_beats_greedy():
     assert (s.tp, s.fp, s.fn) == (2, 0, 0), "Optimal matching should find 2 TPs"
 
 
+def test_scoring_is_order_invariant():
+    """Predictions in different order should yield identical scores."""
+    text = "리쿠르팅 존을 방문해서 모험을 시작합니다"  # 20+ chars
+    items = [
+        item(
+            "a",
+            text,
+            [ann((0, 5), "loanword_spelling"), ann((3, 8), "loanword_spelling")],
+        )
+    ]
+    preds_fwd = {
+        "a": [
+            Prediction(span=(3, 8), category="loanword_spelling"),
+            Prediction(span=(0, 4), category="loanword_spelling"),
+        ]
+    }
+    preds_rev = {
+        "a": [
+            Prediction(span=(0, 4), category="loanword_spelling"),
+            Prediction(span=(3, 8), category="loanword_spelling"),
+        ]
+    }
+    scores_fwd = score_items(items, preds_fwd)
+    scores_rev = score_items(items, preds_rev)
+    assert scores_fwd == scores_rev, "Scores should be identical regardless of prediction order"
