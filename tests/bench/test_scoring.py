@@ -62,3 +62,30 @@ def test_zero_division_guard():
     assert s.precision == 0.0 and s.recall == 0.0 and s.f1 == 0.0
 
 
+def test_optimal_matching_beats_greedy():
+    """Counterexample to greedy matching: overlapping spans in same category.
+
+    ann1=(0, 20), ann2=(15, 25) both span-overlap with pred_a=(15,25) and pred_b=(0,10)
+    Greedy with pred=[a, b]: ann1 takes pred_a → ann2 tries pred_a (taken), tries pred_b (no overlap) → tp=1, fp=1, fn=1
+    Optimal: ann1↔pred_b, ann2↔pred_a → tp=2, fp=0, fn=0
+    """
+    text = "리쿠르팅리쿠르팅리쿠르팅리쿠르팅리쿠르팅리쿠르팅리쿠르팅"  # 28 chars
+    items = [
+        item(
+            "a",
+            text,
+            [ann((0, 20), "loanword_spelling"), ann((15, 25), "loanword_spelling")],
+        )
+    ]
+    preds = {
+        "a": [
+            Prediction(span=(15, 25), category="loanword_spelling"),  # pred_a
+            Prediction(span=(0, 10), category="loanword_spelling"),   # pred_b
+        ]
+    }
+    s = score_items(items, preds)["loanword_spelling"]
+    # With greedy: tp=1 (ann1 takes pred_a), fp=1 (pred_b unmatched), fn=1 (ann2 unmatched)
+    # With optimal: tp=2, fp=0, fn=0
+    assert (s.tp, s.fp, s.fn) == (2, 0, 0), "Optimal matching should find 2 TPs"
+
+
