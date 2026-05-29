@@ -38,3 +38,9 @@ def test_prediction_on_negative_example_is_fp():
     assert (s.tp, s.fp, s.fn) == (0, 1, 0)
 
 
+def test_missed_annotation_is_fn():
+    items = [item("a", "리쿠르팅 존", [ann((0, 4))])]
+    s = score_items(items, {"a": []})["loanword_spelling"]
+    assert (s.tp, s.fp, s.fn) == (0, 0, 1)
+
+
