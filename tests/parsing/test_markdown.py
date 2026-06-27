@@ -23,3 +23,10 @@ def test_heading_level_and_text():
     assert heading.text == "제목입니다"
 
 
+def test_paragraph_text_is_source_slice():
+    para = parse_blocks(SOURCE)[1]
+    assert para.text == "첫 문단입니다. 두 번째 문장입니다."
+    # 원문 슬라이스 불변식: start_offset부터 text가 원문과 일치
+    assert SOURCE[para.start_offset : para.start_offset + len(para.text)] == para.text
+
+
