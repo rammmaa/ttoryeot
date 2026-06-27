@@ -65,3 +65,17 @@ def test_blockquote_is_position_only_container():
     assert len(non_empty) == 1
 
 
+def test_multiline_blockquote_preserves_clean_source_slices():
+    source = "> 첫 줄입니다.\n> 둘째 줄입니다.\n"
+
+    paragraphs = [b for b in parse_blocks(source) if b.kind == "paragraph"]
+
+    assert [b.text for b in paragraphs] == ["첫 줄입니다.", "둘째 줄입니다."]
+    for paragraph in paragraphs:
+        assert (
+            source[
+                paragraph.start_offset : paragraph.start_offset
+                + len(paragraph.text)
+            ]
+            == paragraph.text
+        )
