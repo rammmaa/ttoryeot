@@ -17,3 +17,9 @@ def test_parses_block_kinds():
     assert kinds == ["heading", "paragraph", "code_block", "list_item"]
 
 
+def test_heading_level_and_text():
+    heading = parse_blocks(SOURCE)[0]
+    assert heading.level == 1
+    assert heading.text == "제목입니다"
+
+
