@@ -30,3 +30,14 @@ def test_paragraph_text_is_source_slice():
     assert SOURCE[para.start_offset : para.start_offset + len(para.text)] == para.text
 
 
+def test_code_block_text_empty():
+    code = parse_blocks(SOURCE)[2]
+    assert code.text == ""
+
+
+BLOCKQUOTE_SOURCE = """> 인용 문단입니다.
+
+일반 문단입니다.
+"""
+
+
