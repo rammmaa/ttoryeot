@@ -27,3 +27,10 @@ def test_sentence_offsets_roundtrip():
             assert sliced == sent.text
 
 
+def test_noun_phrases_extracted():
+    doc = lower_document("a.md", SOURCE, KIWI)
+    first = doc.blocks[1].sentences[0]
+    heads = [np.head for np in first.noun_phrases]
+    assert "테이블" in heads
+
+
