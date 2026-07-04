@@ -61,3 +61,12 @@ def test_blockquote_sentence_emitted_exactly_once():
     assert matching[0] == "인용된 문장입니다."
 
 
+def test_load_workspace_records_parse_error(tmp_path: Path):
+    good = tmp_path / "good.md"
+    good.write_text("정상 문서입니다.\n", encoding="utf-8")
+    bad = tmp_path / "bad.md"
+    bad.write_bytes(b"\xff\xfe invalid utf8 \xff")
+    ws = load_workspace(tmp_path)
+    by_path = {d.path: d for d in ws.documents}
+    assert by_path["good.md"].parse_error is None
+    assert by_path["bad.md"].parse_error is not None
