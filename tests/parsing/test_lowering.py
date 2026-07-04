@@ -34,3 +34,18 @@ def test_noun_phrases_extracted():
     assert "테이블" in heads
 
 
+def test_reference_expression_extracted():
+    doc = lower_document("a.md", SOURCE, KIWI)
+    second = doc.blocks[1].sentences[1]
+    assert len(second.references) == 1
+    ref = second.references[0]
+    assert ref.demonstrative == "해당" and ref.head == "데이터"
+    assert SOURCE[ref.range.start_offset : ref.range.end_offset] == ref.text
+
+
+BLOCKQUOTE_SOURCE = """# 제목
+
+> 인용된 문장입니다.
+"""
+
+
