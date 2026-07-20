@@ -41,3 +41,12 @@ def test_term101_mixed_across_documents(tmp_path):
     assert diags[0].range.file == "b.md"
 
 
+def test_term102_conflicting_definitions(tmp_path):
+    ws = make_ws(tmp_path, {
+        "glossary.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "pipeline.md": "데이터세트란 단일 BigQuery 테이블이다.\n",
+    })
+    rules = [d.rule for d in run(ws)]
+    assert "TERM102" in rules
+
+
