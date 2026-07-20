@@ -30,3 +30,14 @@ def test_term100_mixed_in_one_document(tmp_path):
     assert "TERM100" in rules
 
 
+def test_term101_mixed_across_documents(tmp_path):
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n",
+        "b.md": "데이터셋을 저장합니다.\n",
+    })
+    diags = run(ws)
+    assert [d.rule for d in diags] == ["TERM101"]
+    # 비정본 표기 위치에 진단이 달린다
+    assert diags[0].range.file == "b.md"
+
+
