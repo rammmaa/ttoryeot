@@ -67,3 +67,17 @@ def test_term100_reported_for_every_mixing_document(tmp_path):
     assert term101_files == {"c.md"}
 
 
+def test_term102_identical_definition_is_not_flagged(tmp_path):
+    """glossary.md와 정의가 완전히 동일한 문서는 오탐(false positive)이면 안 되고,
+    실제로 다른 정의를 가진 문서에만 TERM102가 달려야 한다."""
+    ws = make_ws(tmp_path, {
+        "glossary.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "guide.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "pipeline.md": "데이터세트란 단일 BigQuery 테이블이다.\n",
+    })
+    diags = run(ws)
+    term102 = [d for d in diags if d.rule == "TERM102"]
+    assert len(term102) == 1
+    assert term102[0].range.file == "pipeline.md"
+
+
