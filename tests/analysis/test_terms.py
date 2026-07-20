@@ -81,3 +81,11 @@ def test_term102_identical_definition_is_not_flagged(tmp_path):
     assert term102[0].range.file == "pipeline.md"
 
 
+def test_consistent_usage_is_clean(tmp_path):
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n",
+        "b.md": "데이터세트를 저장합니다.\n",
+    })
+    assert run(ws) == []
+
+
