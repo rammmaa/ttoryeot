@@ -98,3 +98,16 @@ def test_load_dictionary(tmp_path):
     assert entries[0].canonical == "데이터세트"
 
 
+def test_term_occurrence_tracks_multiline_source_position(tmp_path):
+    ws = make_ws(
+        tmp_path,
+        {"a.md": "데이터세트를 만들고\n데이터셋을 저장합니다.\n"},
+    )
+
+    occurrences = build_symbol_table(ws, ENTRIES)["데이터세트"]
+    alias = next(item for item in occurrences if item.surface == "데이터셋")
+
+    assert alias.range.start_line == 2
+    assert alias.range.start_col == 1
+    assert alias.range.end_line == 2
+    assert alias.range.end_col == 5
