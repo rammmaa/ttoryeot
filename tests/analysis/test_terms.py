@@ -89,3 +89,12 @@ def test_consistent_usage_is_clean(tmp_path):
     assert run(ws) == []
 
 
+def test_load_dictionary(tmp_path):
+    p = tmp_path / "terms.yaml"
+    p.write_text(
+        "terms:\n  - canonical: 데이터세트\n    aliases: [데이터셋]\n", encoding="utf-8"
+    )
+    entries = load_term_dictionary(p)
+    assert entries[0].canonical == "데이터세트"
+
+
