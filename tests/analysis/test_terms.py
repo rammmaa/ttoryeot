@@ -1,0 +1,32 @@
+from pathlib import Path
+
+from ttoryeot.analysis.base import AnalysisContext
+from ttoryeot.analysis.terms.analyzer import TermAnalyzer
+from ttoryeot.analysis.terms.dictionary import (
+    TermEntry,
+    build_symbol_table,
+    load_term_dictionary,
+)
+from ttoryeot.parsing.workspace import load_workspace
+
+ENTRIES = [TermEntry(canonical="데이터세트", aliases=["데이터셋", "데이터 세트"])]
+
+
+def make_ws(tmp_path: Path, files: dict[str, str]):
+    for name, content in files.items():
+        p = tmp_path / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    return load_workspace(tmp_path)
+
+
+def run(ws):
+    return list(TermAnalyzer(ENTRIES).analyze(ws, AnalysisContext()))
+
+
+def test_term100_mixed_in_one_document(tmp_path):
+    ws = make_ws(tmp_path, {"a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n"})
+    rules = [d.rule for d in run(ws)]
+    assert "TERM100" in rules
+
+
