@@ -38,3 +38,14 @@ def test_ref101_considers_antecedents_in_same_sentence(tmp_path):
     }
 
 
+def test_same_sentence_support_preserves_prior_sentence_ranking(tmp_path):
+    ws = make_ws(
+        tmp_path,
+        "주문 결과를 확인합니다.\n\n"
+        "사용자 결과를 만듭니다.\n\n"
+        "해당 결과를 저장합니다.\n",
+    )
+
+    assert run(ws) == []
+
+
