@@ -23,3 +23,18 @@ def test_ref101_on_ambiguous_reference(tmp_path):
     assert len(diags[0].candidates) >= 2
 
 
+def test_ref101_considers_antecedents_in_same_sentence(tmp_path):
+    ws = make_ws(
+        tmp_path,
+        "사용자 테이블과 주문 테이블 중 해당 테이블을 선택합니다.\n",
+    )
+
+    diags = run(ws)
+
+    assert [d.rule for d in diags] == ["REF101"]
+    assert {c.text for c in diags[0].candidates} >= {
+        "사용자 테이블",
+        "주문 테이블",
+    }
+
+
