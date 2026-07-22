@@ -64,3 +64,8 @@ def test_clear_single_candidate_is_silent(tmp_path):
     assert run(ws) == []
 
 
+def test_no_reference_no_diagnostic(tmp_path):
+    ws = make_ws(tmp_path, "조인 결과를 저장합니다.\n")
+    assert run(ws) == []
+
+
