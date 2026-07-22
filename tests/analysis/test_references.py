@@ -59,3 +59,8 @@ def test_zero_window_excludes_prior_sentences(tmp_path):
     assert run(ws, {"reference": {"window": 0}}) == []
 
 
+def test_clear_single_candidate_is_silent(tmp_path):
+    ws = make_ws(tmp_path, "조인 결과를 만듭니다.\n\n해당 결과를 저장합니다.\n")
+    assert run(ws) == []
+
+
