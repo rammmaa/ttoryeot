@@ -78,3 +78,8 @@ def test_section_boundary_cuts_window(tmp_path):
     assert diags == []
 
 
+def test_threshold_configurable(tmp_path):
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    # 임계값 0이면 어떤 점수 차든 통과 → 진단 없음
+    assert run(ws, {"reference": {"threshold": 0.0}}) == []
