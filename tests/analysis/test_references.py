@@ -49,3 +49,13 @@ def test_same_sentence_support_preserves_prior_sentence_ranking(tmp_path):
     assert run(ws) == []
 
 
+def test_zero_window_excludes_prior_sentences(tmp_path):
+    ws = make_ws(
+        tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n"
+        "해당 데이터를 저장합니다.\n",
+    )
+
+    assert run(ws, {"reference": {"window": 0}}) == []
+
+
