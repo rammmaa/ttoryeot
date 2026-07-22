@@ -69,3 +69,12 @@ def test_no_reference_no_diagnostic(tmp_path):
     assert run(ws) == []
 
 
+def test_section_boundary_cuts_window(tmp_path):
+    ws = make_ws(tmp_path,
+        "주문 테이블을 만듭니다.\n\n# 다른 섹션\n\n"
+        "사용자 로그를 수집합니다.\n\n해당 로그를 저장합니다.\n")
+    diags = run(ws)
+    # 섹션 이전의 '주문 테이블'은 후보가 아니므로 후보는 '사용자 로그' 계열뿐 → 침묵
+    assert diags == []
+
+
