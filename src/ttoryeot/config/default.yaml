@@ -1,0 +1,8 @@
+reference:
+  window: 5
+  threshold: 0.2
+  weights:
+    distance: 0.4
+    role: 0.25
+    head_match: 0.25
+    recency: 0.1

@@ -1,0 +1,49 @@
+from pathlib import Path
+
+from ttoryeot.analysis.base import AnalysisContext
+from ttoryeot.analysis.references.analyzer import ReferenceAnalyzer
+from ttoryeot.parsing.workspace import load_workspace
+
+
+def make_ws(tmp_path: Path, content: str):
+    (tmp_path / "doc.md").write_text(content, encoding="utf-8")
+    return load_workspace(tmp_path)
+
+
+def run(ws, config=None):
+    ctx = AnalysisContext(config=config or {})
+    return list(ReferenceAnalyzer().analyze(ws, ctx))
+
+
+def test_ref101_on_ambiguous_reference(tmp_path):
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    diags = run(ws)
+    assert [d.rule for d in diags] == ["REF101"]
+    assert len(diags[0].candidates) >= 2
+
+
+def test_clear_single_candidate_is_silent(tmp_path):
+    ws = make_ws(tmp_path, "조인 결과를 만듭니다.\n\n해당 결과를 저장합니다.\n")
+    assert run(ws) == []
+
+
+def test_no_reference_no_diagnostic(tmp_path):
+    ws = make_ws(tmp_path, "조인 결과를 저장합니다.\n")
+    assert run(ws) == []
+
+
+def test_section_boundary_cuts_window(tmp_path):
+    ws = make_ws(tmp_path,
+        "주문 테이블을 만듭니다.\n\n# 다른 섹션\n\n"
+        "사용자 로그를 수집합니다.\n\n해당 로그를 저장합니다.\n")
+    diags = run(ws)
+    # 섹션 이전의 '주문 테이블'은 후보가 아니므로 후보는 '사용자 로그' 계열뿐 → 침묵
+    assert diags == []
+
+
+def test_threshold_configurable(tmp_path):
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    # 임계값 0이면 어떤 점수 차든 통과 → 진단 없음
+    assert run(ws, {"reference": {"threshold": 0.0}}) == []

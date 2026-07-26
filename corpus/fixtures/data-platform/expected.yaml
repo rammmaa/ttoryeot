@@ -1,0 +1,12 @@
+diagnostics:
+  - rule: TERM102
+    file: docs/pipeline.md
+    line: 3
+  - rule: REF101
+    file: docs/pipeline.md
+    line: 7
+  - rule: TERM101
+    file: docs/deploy.md
+    line: 3
+clean_files:
+  - docs/faq.md
