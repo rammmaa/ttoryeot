@@ -1,0 +1,25 @@
+[project]
+name = "ttoryeot"
+version = "0.1.0"
+description = "Semantic static analyzer for Korean technical documentation"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7",
+    "markdown-it-py>=3.0",
+    "kiwipiepy>=0.18",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+ttoryeot = "ttoryeot.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

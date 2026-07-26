@@ -1,0 +1,7 @@
+__pycache__/
+*.egg-info/
+.venv/
+uv.lock
+benchmark/raw/
+benchmark/results/*.json
+corpus/external/
