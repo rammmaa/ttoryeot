@@ -28,3 +28,19 @@ def run(
     typer.echo(
         f"{engine}: P={total.precision:.3f} R={total.recall:.3f} F1={total.f1:.3f}"
     )
+
+
+@app.command()
+def lint(
+    root: Path,
+    terms: Path | None = typer.Option(None, help="용어 사전 YAML"),
+) -> None:
+    from ttoryeot.runner import run_workspace
+
+    diags = run_workspace(root, terms, {})
+    for d in sorted(diags, key=lambda d: (d.range.file, d.range.start_line)):
+        typer.echo(f"{d.range.file}:{d.range.start_line} {d.rule} {d.message}")
+        for c in d.candidates:
+            typer.echo(f"    후보 {c.score:.2f}  {c.text}")
+    if diags:
+        raise typer.Exit(code=1)
