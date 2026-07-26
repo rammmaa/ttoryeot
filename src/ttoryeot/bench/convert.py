@@ -34,7 +34,7 @@ def convert_csv(csv_path: Path, mapping_path: Path, out_path: Path) -> int:
                 )
             items.append(
                 SentenceItem(
-                    id=f"sent-{i:04d}",
+                    id=f"sent-{len(items) + 1:04d}",
                     source=(row.get(m["source"]) or "survey").strip(),
                     document_type=(row.get(m["document_type"]) or "unknown").strip(),
                     text=text,
