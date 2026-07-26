@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "Block": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "heading",
+            "paragraph",
+            "list_item",
+            "code_block",
+            "block_quote"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "range": {
+          "$ref": "#/$defs/SourceRange"
+        },
+        "sentences": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SentenceIR"
+          },
+          "title": "Sentences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "range"
+      ],
+      "title": "Block",
+      "type": "object"
+    },
+    "DocumentIR": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "content_hash": {
+          "title": "Content Hash",
+          "type": "string"
+        },
+        "blocks": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Block"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "parse_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parse Error"
+        }
+      },
+      "required": [
+        "path",
+        "content_hash"
+      ],
+      "title": "DocumentIR",
+      "type": "object"
+    },
+    "NounPhrase": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "head": {
+          "title": "Head",
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/SourceRange"
+        }
+      },
+      "required": [
+        "text",
+        "head",
+        "range"
+      ],
+      "title": "NounPhrase",
+      "type": "object"
+    },
+    "ReferenceExpression": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "demonstrative": {
+          "title": "Demonstrative",
+          "type": "string"
+        },
+        "head": {
+          "title": "Head",
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/SourceRange"
+        }
+      },
+      "required": [
+        "text",
+        "demonstrative",
+        "head",
+        "range"
+      ],
+      "title": "ReferenceExpression",
+      "type": "object"
+    },
+    "SentenceIR": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/SourceRange"
+        },
+        "tokens": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Token"
+          },
+          "title": "Tokens",
+          "type": "array"
+        },
+        "noun_phrases": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NounPhrase"
+          },
+          "title": "Noun Phrases",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ReferenceExpression"
+          },
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "range"
+      ],
+      "title": "SentenceIR",
+      "type": "object"
+    },
+    "SourceRange": {
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "start_line": {
+          "title": "Start Line",
+          "type": "integer"
+        },
+        "start_col": {
+          "title": "Start Col",
+          "type": "integer"
+        },
+        "end_line": {
+          "title": "End Line",
+          "type": "integer"
+        },
+        "end_col": {
+          "title": "End Col",
+          "type": "integer"
+        },
+        "start_offset": {
+          "title": "Start Offset",
+          "type": "integer"
+        },
+        "end_offset": {
+          "title": "End Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file",
+        "start_line",
+        "start_col",
+        "end_line",
+        "end_col",
+        "start_offset",
+        "end_offset"
+      ],
+      "title": "SourceRange",
+      "type": "object"
+    },
+    "Token": {
+      "properties": {
+        "form": {
+          "title": "Form",
+          "type": "string"
+        },
+        "tag": {
+          "title": "Tag",
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/SourceRange"
+        }
+      },
+      "required": [
+        "form",
+        "tag",
+        "range"
+      ],
+      "title": "Token",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "root": {
+      "title": "Root",
+      "type": "string"
+    },
+    "documents": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DocumentIR"
+      },
+      "title": "Documents",
+      "type": "array"
+    }
+  },
+  "required": [
+    "root"
+  ],
+  "title": "WorkspaceIR",
+  "type": "object"
+}
