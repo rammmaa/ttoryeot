@@ -43,6 +43,24 @@ def test_reference_expression_extracted():
     assert SOURCE[ref.range.start_offset : ref.range.end_offset] == ref.text
 
 
+BLOCKQUOTE_SOURCE = """# 제목
+
+> 인용된 문장입니다.
+"""
+
+
+def test_blockquote_sentence_emitted_exactly_once():
+    doc = lower_document("a.md", BLOCKQUOTE_SOURCE, KIWI)
+    all_texts = [
+        sent.text for block in doc.blocks for sent in block.sentences
+    ]
+    # "> " 마커가 붙은 컨테이너 블록에서 한 번, 내부 문단에서 한 번씩
+    # 이중으로 방출되면 안 된다 (마커 유무와 무관하게 내용 기준으로 유일해야 함).
+    matching = [t for t in all_texts if "인용된 문장입니다" in t]
+    assert len(matching) == 1
+    assert matching[0] == "인용된 문장입니다."
+
+
 def test_load_workspace_records_parse_error(tmp_path: Path):
     good = tmp_path / "good.md"
     good.write_text("정상 문서입니다.\n", encoding="utf-8")

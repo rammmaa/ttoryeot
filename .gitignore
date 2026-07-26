@@ -3,5 +3,5 @@ __pycache__/
 .venv/
 uv.lock
 benchmark/raw/
-benchmark/results/*.json
+benchmark/results/*
 corpus/external/

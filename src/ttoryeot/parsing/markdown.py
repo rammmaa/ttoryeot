@@ -57,6 +57,18 @@ def parse_blocks(source: str) -> list[RawBlock]:
             kind = "list_item"
         start, end = tok.map
 
+        if kind == "block_quote":
+            # block_quote는 위치만 표시하는 컨테이너로만 방출한다 (code_block과
+            # 동일 취급). 내부 paragraph_open이 곧이어 실제 텍스트를 담은
+            # 블록을 방출하므로, 여기서 text를 채우면 같은 문장이 "> " 마커
+            # 포함/미포함 두 버전으로 이중 방출된다.
+            blocks.append(RawBlock(
+                kind=kind, level=None, text="",
+                start_line=start + 1, end_line=end,
+                start_offset=line_offsets[start],
+            ))
+            continue
+
         # 원문 슬라이스 불변식을 위해 tok.map 라인 범위를 그대로 이어 붙인다.
         # source.split("\n") 후 다시 "\n".join 하면 원문의 해당 구간과 항상
         # 정확히 일치한다 (split/join은 서로 역연산).
