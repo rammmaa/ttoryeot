@@ -22,6 +22,15 @@ ENGINES: dict[str, Callable[[], BenchEngine]] = {
 }
 
 
+def _make_ttoryeot() -> BenchEngine:
+    from ttoryeot.bench.adapter import TtoryeotEngine
+
+    return TtoryeotEngine()
+
+
+ENGINES["ttoryeot"] = _make_ttoryeot  # 값이 팩토리이므로 run_and_save의 `ENGINES[engine_name]()` 호출과 호환
+
+
 class BenchResult(BaseModel):
     engine: str
     n_items: int
