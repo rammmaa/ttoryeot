@@ -1,0 +1,9 @@
+text: 원문
+correction: 수정안
+category: 오류 분류
+rationale: 판정 이유
+evidence_url: 근거 URL
+confidence: 확신도
+source: 출처
+document_type: 문서 장르
+default_severity: warning
