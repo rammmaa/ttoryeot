@@ -30,6 +30,14 @@ def run(
     )
 
 
+@bench_app.command()
+def report(results_dir: Path = typer.Option(Path("benchmark/results"))) -> None:
+    from ttoryeot.bench.report import write_report
+
+    out = write_report(results_dir)
+    typer.echo(f"리포트 생성 → {out}")
+
+
 @app.command()
 def lint(
     root: Path,
