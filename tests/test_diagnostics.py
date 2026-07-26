@@ -25,3 +25,12 @@ def test_source_range_ordering_validated():
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
         rng(end_offset=-1)
+
+
+def test_protocol_modules_importable():
+    from ttoryeot.analysis.base import AnalysisContext, Analyzer
+    from ttoryeot.bench.engine import BenchEngine, Prediction
+
+    assert AnalysisContext().config == {}
+    assert Prediction(span=(0, 2), category="spacing").category == "spacing"
+    assert Analyzer is not None and BenchEngine is not None
