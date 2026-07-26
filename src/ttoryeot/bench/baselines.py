@@ -29,8 +29,9 @@ class RegexBaseline:
         return preds
 
 
+# 나이브 베이스라인은 의도적으로 조사를 분리하지 않는다 — 형태소 분석 대비 한계를 보여주는 대조군이며, 채점은 span 겹침 기준이라 결과에 영향 없음.
 _REF_PATTERN = re.compile(
-    rf"(?:{'|'.join(DEMONSTRATIVES)})\s+[가-힣A-Za-z]+?(?=[을를에과와]|\s|$)"
+    rf"(?:{'|'.join(DEMONSTRATIVES)})\s+[가-힣A-Za-z]+"
 )
 
 
