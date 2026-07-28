@@ -43,7 +43,9 @@ Markdown 저장소
   `benchmark/data/*.schema.json`) — 언어 중립, 추후 타 언어 구현체가 소비 가능
 - 평가 우선(evaluation-first): 벤치마크와 채점 하네스(순서 불변 최대 이분 매칭 P/R/F1)가
   엔진과 함께 개발됨. 시드 데이터 기준 엔진 F1 0.750 vs 정규식·치환·나이브 베이스라인
-  0.286~0.333. 공개 한국어 문서 13.6만 줄에 대한 오탐 실측은
+  0.286~0.333. 실제 조사표 기반 278항목 벤치는
+  [1차 정량 실험](docs/research/2026-07-28-round1-quantitative.md)(엔진은 표적 밖에서
+  오탐 0), 공개 한국어 문서 13.6만 줄 오탐 실측은
   [측정 리포트](docs/research/2026-07-28-external-corpus-fp.md) 참조 — 가중치·임계값은
   `src/ttoryeot/config/default.yaml`에서 튜닝 가능(`lint --config`)
 
@@ -60,6 +62,7 @@ uv run ttoryeot bench report
 ## 문서
 
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
+- [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
 - [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
 - [설계 스펙](docs/superpowers/specs/2026-07-26-research-core-design.md)
 - [구현 플랜](docs/superpowers/plans/2026-07-26-research-core.md)
