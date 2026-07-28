@@ -21,8 +21,22 @@ def run(
     engine: str = typer.Option(...),
     out_dir: Path = typer.Option(Path("benchmark/results")),
 ) -> None:
-    from ttoryeot.bench.harness import run_and_save
+    from ttoryeot.bench.harness import ENGINES, run_and_save
 
+    if engine not in ENGINES:
+        typer.echo(
+            f"미등록 엔진 '{engine}' — 사용 가능: {', '.join(sorted(ENGINES))}",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    if not data.exists():
+        typer.echo(
+            f"벤치 데이터가 없습니다: {data}\n"
+            f"조사표 CSV를 먼저 변환하세요: "
+            f"ttoryeot bench convert <csv> <columns.yaml> {data}",
+            err=True,
+        )
+        raise typer.Exit(code=2)
     result = run_and_save(engine, data, out_dir)
     total = result.scores["__total__"]
     typer.echo(
