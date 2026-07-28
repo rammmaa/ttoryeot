@@ -43,6 +43,28 @@ def test_reference_expression_extracted():
     assert SOURCE[ref.range.start_offset : ref.range.end_offset] == ref.text
 
 
+def test_midword_determiner_is_not_a_reference():
+    """Kiwi가 미등록 외래어를 오분해하며 단어 중간에 만든 이/MM(예: '메모이제이션' →
+    메모+이제+이/MM+션/NNP)은 지시어가 아니다 — 지시 관형사는 단어 경계에서만 시작한다.
+    (외부 코퍼스 측정에서 REF101 오탐 클러스터로 실측된 사례. Kiwi 분해는 문맥
+    의존이라 이 문장은 오분해가 재현되는 최소 사례다 — '…은 성능에 좋다'로 바꾸면
+    통짜 NNP로 분석되어 테스트가 무의미해진다.)"""
+    doc = lower_document("a.md", "메모이제이션은 좋다.\n", KIWI)
+    tokens = doc.blocks[0].sentences[0].tokens
+    assert any(t.form == "이" and t.tag in ("MM", "MMD") for t in tokens), (
+        "전제 붕괴: Kiwi 모델이 이 문장을 더 이상 오분해하지 않는다 — "
+        "단어 중간 이/MM이 재현되는 새 문장을 찾아 테스트를 갱신하라"
+    )
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_determiner_reference_at_word_boundary_still_extracted():
+    doc = lower_document("a.md", "주문 테이블이 있다. 이 테이블을 조인한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert [r.text for r in refs] == ["이 테이블"]
+
+
 BLOCKQUOTE_SOURCE = """# 제목
 
 > 인용된 문장입니다.

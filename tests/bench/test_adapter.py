@@ -18,6 +18,18 @@ def test_predicts_ambiguous_reference_within_text_span():
     assert p.span == (0, 6)  # text 기준 '해당 데이터'
 
 
+def test_injected_reference_config_reaches_analyzer():
+    """threshold=0이면 1·2위 점수차 < 0이 불가능하므로 REF101이 절대 나오지 않는다 —
+    주입된 config가 ReferenceAnalyzer까지 실제로 전달되는지 확인."""
+    ambiguous = item(
+        "해당 데이터를 저장합니다.",
+        ctx="사용자 테이블과 주문 테이블을 조인합니다.",
+    )
+    assert TtoryeotEngine().predict(ambiguous) != []
+    tuned = TtoryeotEngine(config={"reference": {"threshold": 0.0}})
+    assert tuned.predict(ambiguous) == []
+
+
 def test_context_only_diagnostics_are_excluded():
     # context_before에서만 발생하는 진단은 예측에 포함되지 않는다
     preds = TtoryeotEngine().predict(item(

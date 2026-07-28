@@ -153,6 +153,11 @@ def _determiner_references(
             continue
         if tok.tag not in _DETERMINER_TAGS:
             continue
+        start = tok.range.start_offset
+        if start > 0 and source[start - 1].isalnum():
+            # 단어 중간에서 시작한 이/MM은 미등록 외래어 오분해 아티팩트다
+            # ('메모이제이션' → 메모+이제+이/MM+션). 지시 관형사는 단어 경계에서만.
+            continue
         nxt = tokens[i + 1] if i + 1 < len(tokens) else None
         if nxt is None or nxt.tag not in NOUN_TAGS:
             continue

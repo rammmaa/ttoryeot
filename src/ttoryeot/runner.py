@@ -25,7 +25,9 @@ def run_workspace(
                                   end_line=1, end_col=1, start_offset=0, end_offset=0),
             ))
     analyzers = [ReferenceAnalyzer()]
-    if terms_path is not None and terms_path.exists():
+    if terms_path is not None:
+        # 없는 파일을 조용히 건너뛰지 않는다 — load가 던지는 에러가 정직하다.
+        # (CLI는 사전에 존재를 검사해 친절한 메시지 + exit 2로 처리한다.)
         analyzers.insert(0, TermAnalyzer(load_term_dictionary(terms_path)))
     for analyzer in analyzers:
         diags.extend(analyzer.analyze(ws, ctx))

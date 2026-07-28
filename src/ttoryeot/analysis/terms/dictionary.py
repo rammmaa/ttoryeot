@@ -25,6 +25,16 @@ def load_term_dictionary(path: Path) -> list[TermEntry]:
     return [TermEntry.model_validate(t) for t in data.get("terms", [])]
 
 
+def _position(sent_text: str, base_line: int, base_col: int, idx: int) -> tuple[int, int]:
+    """문장 시작(base_line/base_col) 기준으로 문장 내 오프셋 idx의 줄·칸을 계산한다.
+    sent_text가 원문 슬라이스와 동일하다는 lowering 불변식을 전제하므로 근사가 아니라 정확값이다."""
+    newlines = sent_text.count("\n", 0, idx)
+    if newlines == 0:
+        return base_line, base_col + idx
+    last_nl = sent_text.rfind("\n", 0, idx)
+    return base_line + newlines, idx - last_nl
+
+
 def build_symbol_table(
     ws: WorkspaceIR, entries: list[TermEntry]
 ) -> dict[str, list[TermOccurrence]]:
@@ -46,12 +56,16 @@ def build_symbol_table(
                     if any(a < abs_end and abs_start < b for a, b in taken):
                         continue
                     taken.append((abs_start, abs_end))
+                    sl, sc = _position(sent.text, sent.range.start_line,
+                                       sent.range.start_col, idx)
+                    el, ec = _position(sent.text, sent.range.start_line,
+                                       sent.range.start_col, idx + len(surface))
                     table[canonical].append(TermOccurrence(
                         canonical=canonical, surface=surface, doc_path=doc.path,
                         range=SourceRange(
                             file=doc.path,
-                            start_line=sent.range.start_line, start_col=1,
-                            end_line=sent.range.start_line, end_col=1,
+                            start_line=sl, start_col=sc,
+                            end_line=el, end_col=ec,
                             start_offset=abs_start, end_offset=abs_end,
                         ),
                     ))

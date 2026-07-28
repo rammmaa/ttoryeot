@@ -2,17 +2,18 @@ from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
 from ttoryeot.analysis.references.candidates import rank_candidates
+from ttoryeot.config import default_config
 from ttoryeot.diagnostics.models import Candidate, Diagnostic
 from ttoryeot.ir.models import WorkspaceIR
 
-DEFAULTS = {"window": 5, "threshold": 0.2, "weights": None}
+DEFAULTS = default_config()["reference"]
 
 
 class ReferenceAnalyzer:
     rule_ids = ("REF101",)
 
     def analyze(self, ws: WorkspaceIR, ctx: AnalysisContext) -> Iterable[Diagnostic]:
-        cfg = {**DEFAULTS, **ctx.config.get("reference", {})}
+        cfg = {**DEFAULTS, **(ctx.config.get("reference") or {})}
         for doc in ws.documents:
             # 문서 내 문장 시퀀스 (heading에서 윈도 리셋)
             window = []

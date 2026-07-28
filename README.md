@@ -50,7 +50,8 @@ uv run ttoryeot bench report
 
 ## 문서
 
-- [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-27-round1-status.md)
+- [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
+- [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
 - [설계 스펙](docs/superpowers/specs/2026-07-26-research-core-design.md)
 - [구현 플랜](docs/superpowers/plans/2026-07-26-research-core.md)
 - [관련 연구 조사](docs/research/2026-07-26-related-work.md)

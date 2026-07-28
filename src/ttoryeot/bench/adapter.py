@@ -1,9 +1,12 @@
+from typing import Any
+
 from ttoryeot.analysis.base import AnalysisContext
 from ttoryeot.analysis.references.analyzer import ReferenceAnalyzer
 from ttoryeot.analysis.terms.analyzer import TermAnalyzer
 from ttoryeot.analysis.terms.dictionary import TermEntry
 from ttoryeot.bench.engine import Prediction
 from ttoryeot.bench.schema import SentenceItem
+from ttoryeot.config import load_config
 from ttoryeot.ir.models import WorkspaceIR
 from ttoryeot.parsing.lowering import lower_document
 from ttoryeot.parsing.workspace import get_kiwi
@@ -22,12 +25,15 @@ SEED_TERMS = [TermEntry(canonical="데이터세트", aliases=["데이터셋", "�
 class TtoryeotEngine:
     name = "ttoryeot"
 
+    def __init__(self, config: dict[str, Any] | None = None):
+        self.config = load_config() if config is None else config
+
     def predict(self, item: SentenceItem) -> list[Prediction]:
         prefix = item.context_before + "\n\n" if item.context_before else ""
         source = prefix + item.text
         doc = lower_document("item.md", source, get_kiwi())
         ws = WorkspaceIR(root=".", documents=[doc])
-        ctx = AnalysisContext()
+        ctx = AnalysisContext(config=self.config)
         base = len(prefix)
         preds = []
         for analyzer in (TermAnalyzer(SEED_TERMS), ReferenceAnalyzer()):
