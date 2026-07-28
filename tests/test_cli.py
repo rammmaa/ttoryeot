@@ -33,6 +33,14 @@ def test_lint_config_reaches_analyzer(tmp_path):
     assert "REF101" not in res.output
 
 
+def test_lint_missing_root_exits_2(tmp_path):
+    """존재하지 않는 루트는 조용한 '클린'(exit 0)이 아니라 명확한 에러여야 한다 —
+    경로 오타가 무진단 통과로 위장되는 것을 막는다."""
+    res = runner.invoke(app, ["lint", str(tmp_path / "no-such-dir")])
+    assert res.exit_code == 2
+    assert "존재하지 않" in res.output
+
+
 def test_bench_run_missing_data_exits_2_with_guidance(tmp_path):
     res = runner.invoke(
         app,

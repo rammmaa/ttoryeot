@@ -61,6 +61,9 @@ def lint(
     from ttoryeot.config import load_config
     from ttoryeot.runner import run_workspace
 
+    if not root.is_dir():
+        typer.echo(f"루트 디렉터리가 존재하지 않습니다: {root}", err=True)
+        raise typer.Exit(code=2)
     diags = run_workspace(root, terms, load_config(config))
     for d in sorted(diags, key=lambda d: (d.range.file, d.range.start_line)):
         typer.echo(f"{d.range.file}:{d.range.start_line} {d.rule} {d.message}")
