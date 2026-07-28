@@ -61,6 +61,7 @@ uv run ttoryeot bench report
 
 ## 문서
 
+- **[세션 요약 — 무엇이 구현됐나 (여기부터)](docs/handoff/2026-07-28-session-summary.md)**
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
 - [REF101 튜닝 챕터](docs/research/2026-07-28-ref101-tuning.md)
