@@ -2,6 +2,15 @@ terms:
   # true면 혼용 여부와 무관하게 사전의 비권장 표기(alias) 등장을 TERM104로 플래그.
   # 표기 정책(사전 권위 vs 사용 일관성) 선택이므로 기본 off.
   enforce_canonical: false
+  # true면 사전에 없는 조직 고유 용어 후보(NNP/SL 포함 명사구의 반복)를 TERM103
+  # info로 제안 — 사전 성장 루프용. 임계는 아래 두 값.
+  # 주의: (1) lint에서 TermAnalyzer는 --terms가 있어야 구성되므로, 빈 사전에서
+  # 시작하려면 `terms: []`만 담은 terms.yaml을 넘겨라. (2) 제외는 명사구 전체
+  # 텍스트의 정확 일치다 — 'Kafka'를 등록해도 'Kafka 클러스터'는 별도 후보로
+  # 제안된다 (v1 의미론, round-4에서 부분 일치 검토).
+  suggest_unknown: false
+  unknown_min_count: 3
+  unknown_min_docs: 2
 
 reference:
   window: 5
@@ -20,5 +29,5 @@ reference:
   # structural은 선행사가 링크·코드블록·문서 자체인 구조 참조,
   # discourse는 선행 명제를 가리키는 담화 지시로, 둘 다 NP 후보 랭킹의 대상이 아니다.
   suppress_heads:
-    structural: [글, 문서, 예시, 코드, 데모, 영상, 세션, 링크, 페이지, 포스트, 아티클, 블로그, 가이드]
+    structural: [글, 문서, 예시, 예제, 코드, 데모, 영상, 세션, 링크, 페이지, 포스트, 아티클, 블로그, 가이드]
     discourse: [문제, 경우, 방법, 방식, 원칙, 변화, 내용, 이유, 과정, 점]

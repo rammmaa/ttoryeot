@@ -167,6 +167,54 @@ def test_term104_and_mixing_rules_are_orthogonal(tmp_path):
     assert {"TERM100", "TERM104"} <= rules
 
 
+def test_term103_off_by_default(tmp_path):
+    ws = make_ws(tmp_path, {
+        "a.md": "Kafka를 씁니다. Kafka가 좋습니다.\n",
+        "b.md": "Kafka를 배웁니다.\n",
+    })
+    assert run(ws) == []
+
+
+def test_term103_flags_recurring_unknown_proper_noun(tmp_path):
+    """스펙 §6.2 TERM103 — 사전에 없는 조직 고유 용어(NNP/SL 포함 명사구)가
+    문서·횟수 임계 이상 반복되면 사전 등록 후보로 info 진단 (첫 등장 위치에 1건)."""
+    ws = make_ws(tmp_path, {
+        "a.md": "Kafka를 씁니다. Kafka가 좋습니다.\n",
+        "b.md": "Kafka를 배웁니다.\n",
+    })
+    diags = list(TermAnalyzer(ENTRIES).analyze(
+        ws, AnalysisContext(config={"terms": {"suggest_unknown": True}})))
+    t103 = [d for d in diags if d.rule == "TERM103"]
+    assert len(t103) == 1
+    assert "Kafka" in t103[0].message
+    assert t103[0].severity == "info"
+    assert t103[0].range.file == "a.md"
+
+
+def test_term103_respects_dictionary_thresholds_and_tags(tmp_path):
+    cfg = AnalysisContext(config={"terms": {"suggest_unknown": True}})
+    # 사전에 등록된 용어는 침묵
+    entries = ENTRIES + [TermEntry(canonical="Kafka")]
+    ws = make_ws(tmp_path / "known", {
+        "a.md": "Kafka를 씁니다. Kafka가 좋습니다.\n",
+        "b.md": "Kafka를 배웁니다.\n",
+    })
+    assert [d for d in TermAnalyzer(entries).analyze(ws, cfg)
+            if d.rule == "TERM103"] == []
+    # 한 문서에만 반복되면 침묵 (unknown_min_docs 기본 2)
+    ws = make_ws(tmp_path / "onedoc",
+                 {"a.md": "Kafka를 씁니다. Kafka가 좋습니다. Kafka도 있습니다.\n"})
+    assert [d for d in TermAnalyzer(ENTRIES).analyze(ws, cfg)
+            if d.rule == "TERM103"] == []
+    # NNP/SL이 없는 일반 명사구는 후보가 아니다
+    ws = make_ws(tmp_path / "generic", {
+        "a.md": "테이블을 만듭니다. 테이블을 채웁니다.\n",
+        "b.md": "테이블을 지웁니다.\n",
+    })
+    assert [d for d in TermAnalyzer(ENTRIES).analyze(ws, cfg)
+            if d.rule == "TERM103"] == []
+
+
 def test_load_dictionary(tmp_path):
     p = tmp_path / "terms.yaml"
     p.write_text(

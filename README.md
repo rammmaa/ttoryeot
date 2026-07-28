@@ -64,6 +64,7 @@ uv run ttoryeot bench report
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
 - [REF101 튜닝 챕터](docs/research/2026-07-28-ref101-tuning.md)
+- [잔존 발화 재판정·억제 비용·장르 일반화](docs/research/2026-07-28-round3-residual-judgment.md)
 - [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
 - [설계 스펙](docs/superpowers/specs/2026-07-26-research-core-design.md)
 - [구현 플랜](docs/superpowers/plans/2026-07-26-research-core.md)

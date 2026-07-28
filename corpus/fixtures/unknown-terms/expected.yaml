@@ -1,0 +1,7 @@
+diagnostics:
+  - rule: TERM103
+    file: docs/intro.md
+    line: 1
+clean_files:
+  - docs/faq.md
+  - docs/ops.md

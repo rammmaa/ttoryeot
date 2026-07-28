@@ -64,3 +64,7 @@ def test_code_defaults_are_sourced_from_yaml():
     assert candidates.DEFAULT_WEIGHTS == ref["weights"]
     assert analyzer.DEFAULTS["window"] == ref["window"]
     assert analyzer.DEFAULTS["threshold"] == ref["threshold"]
+
+    from ttoryeot.analysis.terms import analyzer as terms_analyzer
+
+    assert terms_analyzer._TERM_DEFAULTS == default_config()["terms"]
