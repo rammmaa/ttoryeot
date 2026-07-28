@@ -34,17 +34,35 @@ def _normalize_definition(raw: str) -> str:
 
 
 class TermAnalyzer:
-    rule_ids = ("TERM100", "TERM101", "TERM102")
+    # TERM103은 스펙 §6.2의 '사전에 없는 조직 고유 용어' 규칙용으로 예약 (미구현).
+    rule_ids = ("TERM100", "TERM101", "TERM102", "TERM104")
 
     def __init__(self, entries: list[TermEntry]):
         self.entries = entries
 
     def analyze(self, ws: WorkspaceIR, ctx: AnalysisContext) -> Iterable[Diagnostic]:
         table = build_symbol_table(ws, self.entries)
+        enforce = bool((ctx.config.get("terms") or {}).get("enforce_canonical"))
         for entry in self.entries:
             occs = table[entry.canonical]
             yield from self._mixed_usage(entry, occs)
             yield from self._conflicting_definitions(ws, entry)
+            if enforce:
+                yield from self._nonpreferred_surface(entry, occs)
+
+    def _nonpreferred_surface(
+        self, entry: TermEntry, occs: list[TermOccurrence]
+    ) -> Iterable[Diagnostic]:
+        # TERM104: 사전이 정본을 정하면 혼용 여부와 무관하게 비권장 표기를 플래그
+        # — 혼용 검출(TERM100/101)과 달리 고립 문서의 '오너쉽'류를 잡는다 (1차
+        # 정량 실험에서 실증된 간극). 표기 정책 선택이므로 opt-in.
+        for o in occs:
+            if o.surface != entry.canonical:
+                yield Diagnostic(
+                    rule="TERM104", severity="warning",
+                    message=f"'{o.surface}'는 사전 비권장 표기입니다 — 권장: '{entry.canonical}'.",
+                    range=o.range,
+                )
 
     def _mixed_usage(
         self, entry: TermEntry, occs: list[TermOccurrence]

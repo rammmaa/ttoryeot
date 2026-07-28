@@ -1,3 +1,8 @@
+terms:
+  # true면 혼용 여부와 무관하게 사전의 비권장 표기(alias) 등장을 TERM104로 플래그.
+  # 표기 정책(사전 권위 vs 사용 일관성) 선택이므로 기본 off.
+  enforce_canonical: false
+
 reference:
   window: 5
   threshold: 0.2
