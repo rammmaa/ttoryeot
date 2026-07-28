@@ -14,6 +14,12 @@
 > 전체 문서 검토에 집중한다. 또렷은 그 사이 — 저장소 수준의 용어·참조 일관성 — 을 겨냥해,
 > 용어 정의·참조·문서 간 일관성을 인덱싱하고 재현 가능한 진단으로 제공한다.
 
+참조 모호성 진단(REF101)은 요구공학의 **유해 모호성(nocuous ambiguity)** 패러다임
+— 지시 대상을 맞히는 대신 독자 간 해석이 갈릴 위험만 경고한다 — 을 한국어에 적용한 것이다
+(Chantree 외 2006, Yang 외 2011, Ezzini 외 2022). 또렷 고유의 기여는 **한국어 적용 ·
+비ML 결정론 구현 · 저장소 단위 분석 · 한국어 기술 문서 벤치마크**이며, 근거와 선행 연구
+대비 위치는 [검증판 관련 연구](docs/research/2026-07-29-related-work-verified.md)에 정리했다.
+
 **연구 질문:** 한국어 기술 문서의 용어 불일치와 참조 모호성을, LLM 없이 결정적 규칙과 구조
 분석만으로 얼마나 정확하게(낮은 오탐으로) 탐지할 수 있는가?
 
@@ -64,6 +70,7 @@ uv run ttoryeot bench report
 - **[세션 요약 — 무엇이 구현됐나 (여기부터)](docs/handoff/2026-07-28-session-summary.md)**
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
+- [관련 연구 (검증판) · 선행연구 대비 위치](docs/research/2026-07-29-related-work-verified.md)
 - [REF101 튜닝 챕터](docs/research/2026-07-28-ref101-tuning.md)
 - [잔존 발화 재판정·억제 비용·장르 일반화](docs/research/2026-07-28-round3-residual-judgment.md)
 - [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
