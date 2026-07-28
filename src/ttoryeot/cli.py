@@ -77,9 +77,9 @@ def lint(
     if not root.is_dir():
         typer.echo(f"루트 디렉터리가 존재하지 않습니다: {root}", err=True)
         raise typer.Exit(code=2)
-    if terms is not None and not terms.exists():
+    if terms is not None and not terms.is_file():
         # 오타가 TermAnalyzer의 조용한 탈락(TERM 무진단 통과)으로 위장되면 안 된다
-        typer.echo(f"용어 사전 파일이 존재하지 않습니다: {terms}", err=True)
+        typer.echo(f"용어 사전 파일을 찾을 수 없습니다: {terms}", err=True)
         raise typer.Exit(code=2)
     try:
         cfg = load_config(config)

@@ -13,7 +13,10 @@ _REQUIRED_MAPPING_KEYS = (
 
 
 def convert_csv(csv_path: Path, mapping_path: Path, out_path: Path) -> int:
-    m = yaml.safe_load(mapping_path.read_text(encoding="utf-8"))
+    try:
+        m = yaml.safe_load(mapping_path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"columns.yaml 파싱 실패: {mapping_path} ({exc})") from exc
     if not isinstance(m, dict):
         raise ValueError(f"columns.yaml 최상위는 매핑이어야 합니다: {mapping_path}")
     missing = [k for k in _REQUIRED_MAPPING_KEYS if k not in m]

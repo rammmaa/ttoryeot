@@ -147,6 +147,28 @@ def test_bench_convert_incomplete_mapping_exits_2(tmp_path):
     assert "category" in res.output  # 누락 키를 알려준다
 
 
+def test_bench_convert_malformed_mapping_yaml_exits_2(tmp_path):
+    csv_path = tmp_path / "s.csv"
+    csv_path.write_text("원문\n문장입니다.\n", encoding="utf-8")
+    mapping = tmp_path / "columns.yaml"
+    mapping.write_text("text: [unclosed\n", encoding="utf-8")
+    res = runner.invoke(
+        app,
+        ["bench", "convert", str(csv_path), str(mapping),
+         str(tmp_path / "o.jsonl")],
+    )
+    assert res.exit_code == 2
+    assert "columns.yaml" in res.output
+
+
+def test_lint_terms_directory_exits_2(tmp_path):
+    """--terms에 디렉터리를 주면 exists()는 통과하지만 read에서 터진다 —
+    파일이 아니면 같은 가드로 잡는다."""
+    res = runner.invoke(app, ["lint", str(FIXTURE), "--terms", str(tmp_path)])
+    assert res.exit_code == 2
+    assert "용어 사전" in res.output
+
+
 def test_bench_convert_smoke(tmp_path):
     csv_path = tmp_path / "survey.csv"
     csv_path.write_text(
