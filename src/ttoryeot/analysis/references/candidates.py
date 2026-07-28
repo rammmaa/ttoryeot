@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 
+from ttoryeot.config import default_config
 from ttoryeot.ir.models import NounPhrase, ReferenceExpression, SentenceIR
 
-DEFAULT_WEIGHTS = {"distance": 0.4, "role": 0.25, "head_match": 0.25, "recency": 0.1}
+DEFAULT_WEIGHTS = default_config()["reference"]["weights"]
 SUBJ_OBJ_PARTICLES = {"이", "가", "을", "를", "은", "는"}
 
 

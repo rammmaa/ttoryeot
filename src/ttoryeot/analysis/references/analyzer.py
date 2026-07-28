@@ -2,10 +2,11 @@ from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
 from ttoryeot.analysis.references.candidates import rank_candidates
+from ttoryeot.config import default_config
 from ttoryeot.diagnostics.models import Candidate, Diagnostic
 from ttoryeot.ir.models import WorkspaceIR
 
-DEFAULTS = {"window": 5, "threshold": 0.2, "weights": None}
+DEFAULTS = default_config()["reference"]
 
 
 class ReferenceAnalyzer:

@@ -42,10 +42,12 @@ def report(results_dir: Path = typer.Option(Path("benchmark/results"))) -> None:
 def lint(
     root: Path,
     terms: Path | None = typer.Option(None, help="용어 사전 YAML"),
+    config: Path | None = typer.Option(None, help="설정 YAML (default.yaml 위에 덮어씀)"),
 ) -> None:
+    from ttoryeot.config import load_config
     from ttoryeot.runner import run_workspace
 
-    diags = run_workspace(root, terms, {})
+    diags = run_workspace(root, terms, load_config(config))
     for d in sorted(diags, key=lambda d: (d.range.file, d.range.start_line)):
         typer.echo(f"{d.range.file}:{d.range.start_line} {d.rule} {d.message}")
         for c in d.candidates:
