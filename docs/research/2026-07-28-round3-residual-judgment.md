@@ -12,7 +12,7 @@
 |---|---|---|---|---|
 | fe-news | 뉴스레터 | 15,921 | 199 | 12.5 |
 | ko.react.dev | 튜토리얼 (전문 번역) | 119,917 | 1,045 | 8.7 |
-| kubernetes/website ko (`content/ko`, HEAD 고정 클론) | 레퍼런스·운영 문서 | 92,771 | 2,105 | **22.7** |
+| kubernetes/website ko (`content/ko`, HEAD `d725f0e`) | 레퍼런스·운영 문서 | 92,771 | 2,105 | **22.7** |
 
 k8s가 2~3배 높다 — 장르 원인 두 가지가 표본·클러스터에서 확인됐다:
 (a) 구조 목록의 어휘 변형 누락: k8s는 '예시' 대신 **'예제'**를 쓴다 (상위 트리거,
@@ -59,7 +59,7 @@ k8s가 2~3배 높다 — 장르 원인 두 가지가 표본·클러스터에서 
 
 ```bash
 git clone --depth 1 --filter=blob:none --sparse https://github.com/kubernetes/website \
-  corpus/external/k8s-website
+  corpus/external/k8s-website   # 측정 시점 HEAD d725f0e — 수치 재현은 이 커밋 기준
 git -C corpus/external/k8s-website sparse-checkout set content/ko
 uv run ttoryeot lint corpus/external/k8s-website/content/ko   # REF101만
 # 억제 해제 대조: reference.suppress_heads의 두 목록을 빈 리스트로 한 config를 --config로

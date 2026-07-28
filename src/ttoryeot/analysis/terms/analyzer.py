@@ -4,6 +4,7 @@ from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
 from ttoryeot.analysis.terms.dictionary import TermEntry, TermOccurrence, build_symbol_table
+from ttoryeot.config import default_config
 from ttoryeot.diagnostics.models import Diagnostic
 from ttoryeot.ir.models import WorkspaceIR
 from ttoryeot.ir.source import SourceRange
@@ -25,6 +26,8 @@ def _list_definition_pattern(surface: str) -> re.Pattern:
 
 
 _TRAILING_COPULA = re.compile(r"(?:이다|입니다|를 말합니다|을 말합니다)?\.?\s*$")
+
+_TERM_DEFAULTS = default_config()["terms"]
 
 
 def _normalize_definition(raw: str) -> str:
@@ -58,8 +61,8 @@ class TermAnalyzer:
         """TERM103 (스펙 §6.2): 사전에 없는 조직 고유 용어 후보 — NNP/SL을 포함한
         명사구가 임계 이상 반복되면 사전 등록 후보로 제안한다. 일반 명사(NNG)만으로
         된 구는 잡음이 많아 v1에서는 후보로 보지 않는다. opt-in (사전 성장 루프)."""
-        min_count = int(tcfg.get("unknown_min_count", 3))
-        min_docs = int(tcfg.get("unknown_min_docs", 2))
+        min_count = int(tcfg.get("unknown_min_count", _TERM_DEFAULTS["unknown_min_count"]))
+        min_docs = int(tcfg.get("unknown_min_docs", _TERM_DEFAULTS["unknown_min_docs"]))
         known = {s for e in self.entries for s in [e.canonical, *e.aliases]}
         counts: dict[str, int] = {}
         docs: dict[str, set[str]] = {}

@@ -111,8 +111,9 @@ CODE_DENSE_SOURCE = """# `run()` 사용법
 
 
 def test_roundtrip_holds_in_code_dense_document():
-    """마스킹×오프셋 상호작용의 영구 고정 — 인라인 코드가 빽빽한 문서에서도
-    문장·명사구·지시어의 range 슬라이스가 원문과 정확히 일치해야 한다."""
+    """마스킹×오프셋 상호작용의 영구 고정. 슬라이스==텍스트 단언은 구성상 항등에
+    가깝고, 실제 하중은 마지막의 식별자 부재 단언이 진다 — 명사 런이 마스킹 영역을
+    건너뛰어 병합되면 구 텍스트에 코드가 재유입되는 결함을 이 단언이 적발했다."""
     doc = lower_document("a.md", CODE_DENSE_SOURCE, KIWI)
     n_sent = 0
     for block in doc.blocks:

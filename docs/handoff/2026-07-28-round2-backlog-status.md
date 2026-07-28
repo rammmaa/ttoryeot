@@ -49,7 +49,7 @@
 |---|---|
 | 인라인 코드 마스킹 (스펙 §5) | 코드 스팬을 길이 보존 공백으로 치환해 Kiwi 입력에서만 제외 — 식별자 유입·코드 내 마침표 문장 분절 해소, 오프셋 불변 |
 | REF101 구조 참조·담화 지시 억제 | `reference.suppress_heads` config 리스트 (외부 실측 표본 근거). '이 글'·'위 예시 앱'·'이 방법'류 침묵 |
-| REF101 튜닝 챕터 (스펙 §6.3) | `benchmark/sweep_ref101.py` 스윕 → 기본값 확정 (th 0.2 · head_match 0.45). **발견: threshold 단독 튜닝은 절벽** (0.15에서 시드 recall 0). 외부 발화율 round-1 대비 fe-news −57%(12.5/1k줄)·react −39%(8.8/1k줄), 가드 불변. [튜닝 챕터](../research/2026-07-28-ref101-tuning.md) |
+| REF101 튜닝 챕터 (스펙 §6.3) | `benchmark/sweep_ref101.py` 스윕 → 기본값 확정 (th 0.2 · head_match 0.45). **발견: threshold 단독 튜닝은 절벽** (0.15에서 시드 recall 0). 외부 발화율 round-1 대비 fe-news −57%(12.5/1k줄)·react −39%(당시 8.8/1k줄, round-3 명사 런 수정 후 8.7 — 튜닝 챕터 주석 참조), 가드 불변. [튜닝 챕터](../research/2026-07-28-ref101-tuning.md) |
 | TERM104 (비권장 표기, opt-in) | `terms.enforce_canonical` — 혼용 없는 고립 문서의 '오너쉽'류 (TERM103은 스펙 미지 용어 규칙용 예약) |
 | 픽스처 5세트 | data-platform + notation-mix(표기 통일 패턴) + canonical-enforce(TERM104, 픽스처별 config.yaml 지원) + structural-clean(억제·마스킹 무오탐 가드) + definition-conflict(TERM102 list_item) — golden 파라미터라이즈 |
 
@@ -92,4 +92,4 @@
 ## 참고
 
 - 원격: `https://github.com/rammmaa/ttoryeot` (프라이빗, rammmaa). 새 머신은 `gh auth login` 후
-  clone → `uv sync` → `uv run pytest -q` (105 passed)
+  clone → `uv sync` → `uv run pytest -q` (110 passed)
