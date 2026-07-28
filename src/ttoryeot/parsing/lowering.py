@@ -1,4 +1,5 @@
 import hashlib
+import re
 
 from kiwipiepy import Kiwi
 
@@ -32,6 +33,18 @@ NOUN_TAGS = {"NNG", "NNP", "SL"}
 FUSED_DEMONSTRATIVES = {"해당", "위"}
 DETERMINER_DEMONSTRATIVES = {"이", "그"}
 _DETERMINER_TAGS = {"MM", "MMD"}
+
+
+_INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
+
+
+def _mask_inline_code(text: str) -> str:
+    """인라인 코드 스팬을 같은 길이의 공백으로 바꿔 Kiwi 입력에서만 제외한다
+    (스펙 §5). 길이가 보존되므로 토큰 오프셋은 원문 기준 그대로이고, 문장 텍스트는
+    여전히 원문 슬라이스에서 오므로 코드가 포함된 원문이 유지된다.
+    알려진 미탐(항상 길이 안전): 3중 백틱 인라인 스팬(```x```)은 백틱 하나가 남고,
+    소프트 줄바꿈을 걸친 스팬(`foo\\nbar`)은 마스킹되지 않는다."""
+    return _INLINE_CODE.sub(lambda m: " " * len(m.group()), text)
 
 
 def to_range(file: str, source: str, start: int, end: int) -> SourceRange:
@@ -203,7 +216,7 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
             continue
 
         sentences = []
-        for sent in kiwi.split_into_sents(raw.text, return_tokens=True):
+        for sent in kiwi.split_into_sents(_mask_inline_code(raw.text), return_tokens=True):
             s_start = raw.start_offset + sent.start
             s_end = raw.start_offset + sent.end
             tokens = [

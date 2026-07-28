@@ -42,6 +42,52 @@ def test_section_boundary_cuts_window(tmp_path):
     assert diags == []
 
 
+AMBIENT = "사용자 테이블과 주문 테이블을 조인합니다.\n\n"
+
+
+def test_structural_reference_heads_suppressed(tmp_path):
+    """외부 코퍼스 실측(2026-07-28 리포트) 근거 — '이 글'류 구조 참조는 선행사가
+    프로즈 명사구가 아니라 문서·링크·코드블록 자체라 REF101 대상이 아니다."""
+    ws = make_ws(tmp_path, AMBIENT + "이 글에서는 조인 방법을 설명합니다.\n")
+    assert run(ws) == []
+
+
+def test_discourse_deixis_heads_suppressed(tmp_path):
+    """'이 방법'류 담화 지시는 선행 명제를 가리킨다 — NP 후보 랭킹의 대상이 아니다."""
+    ws = make_ws(tmp_path, AMBIENT + "이 방법은 빠릅니다.\n")
+    assert run(ws) == []
+
+
+def test_structural_word_after_demonstrative_suppressed(tmp_path):
+    """'위 예시 앱'처럼 head가 아니라 지시어 바로 뒤 명사가 구조어인 경우도 억제
+    (외부 측정 실측 사례)."""
+    ws = make_ws(tmp_path, AMBIENT + "위 예시 앱을 실행합니다.\n")
+    assert run(ws) == []
+
+
+def test_suppression_configurable_off(tmp_path):
+    ws = make_ws(tmp_path, AMBIENT + "이 글에서는 조인 방법을 설명합니다.\n")
+    diags = run(ws, {"reference": {"suppress_heads": {"structural": [], "discourse": []}}})
+    assert [d.rule for d in diags] == ["REF101"]
+
+
+def test_partial_suppress_override_keeps_other_group(tmp_path):
+    """suppress_heads를 부분만 오버라이드하면 나머지 그룹은 기본 목록을 유지해야
+    한다 — CLI(--config 딥머지)와 직접 주입의 의미가 갈리면 스윕 코드가 헛돈다."""
+    ws = make_ws(tmp_path, AMBIENT + "이 방법은 빠릅니다.\n")
+    assert run(ws, {"reference": {"suppress_heads": {"structural": []}}}) == []
+
+
+def test_suppressed_head_hides_genuine_ambiguity_known_limitation(tmp_path):
+    """의도된 v1 한계의 핀 — 두 구체적 '방법'이 경쟁해도 head가 담화 목록에 있으면
+    억제된다. round-3에서 same-head 후보 존재 시 억제 해제를 검토할 때 이 테스트를
+    갱신하라 (튜닝 챕터 한계 절 참조)."""
+    ws = make_ws(tmp_path, "조인 방법과 정렬 방법을 비교합니다.\n\n해당 방법을 사용합니다.\n")
+    assert run(ws) == []
+    diags = run(ws, {"reference": {"suppress_heads": {"structural": [], "discourse": []}}})
+    assert [d.rule for d in diags] == ["REF101"]
+
+
 def test_threshold_configurable(tmp_path):
     ws = make_ws(tmp_path,
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")

@@ -1,0 +1,9 @@
+diagnostics:
+  - rule: TERM104
+    file: docs/create.md
+    line: 1
+  - rule: TERM104
+    file: docs/delete.md
+    line: 1
+clean_files:
+  - docs/query.md

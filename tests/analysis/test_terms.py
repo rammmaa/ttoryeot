@@ -134,6 +134,39 @@ def test_consistent_usage_is_clean(tmp_path):
     assert run(ws) == []
 
 
+def test_term104_off_by_default_no_mixing_is_silent(tmp_path):
+    ws = make_ws(tmp_path, {"a.md": "데이터셋을 저장합니다.\n"})
+    assert run(ws) == []  # 혼용이 없으면 기본 설정에선 침묵
+
+
+def test_term104_flags_alias_without_mixing_when_enabled(tmp_path):
+    """1차 정량 실험에서 실증된 간극 — 고립 문서의 비권장 표기('오너쉽'류)는 혼용
+    규칙(TERM100/101)으로 원리상 못 잡는다. terms.enforce_canonical 옵트인 시
+    사전 기준으로 TERM104를 낸다."""
+    ws = make_ws(tmp_path, {"a.md": "데이터셋을 저장합니다.\n"})
+    diags = list(TermAnalyzer(ENTRIES).analyze(
+        ws, AnalysisContext(config={"terms": {"enforce_canonical": True}})))
+    assert [d.rule for d in diags] == ["TERM104"]
+    assert "데이터세트" in diags[0].message
+
+
+def test_term104_canonical_only_is_clean_when_enabled(tmp_path):
+    ws = make_ws(tmp_path, {"a.md": "데이터세트를 저장합니다.\n"})
+    diags = list(TermAnalyzer(ENTRIES).analyze(
+        ws, AnalysisContext(config={"terms": {"enforce_canonical": True}})))
+    assert diags == []
+
+
+def test_term104_and_mixing_rules_are_orthogonal(tmp_path):
+    """혼용 사실(TERM100/101)과 정책 위반(TERM104)은 별개 진단이다 — enforce가 켜진
+    상태에서 혼용이 있으면 같은 occurrence에 둘 다 보고되는 것이 의도."""
+    ws = make_ws(tmp_path, {"a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n"})
+    diags = list(TermAnalyzer(ENTRIES).analyze(
+        ws, AnalysisContext(config={"terms": {"enforce_canonical": True}})))
+    rules = {d.rule for d in diags}
+    assert {"TERM100", "TERM104"} <= rules
+
+
 def test_load_dictionary(tmp_path):
     p = tmp_path / "terms.yaml"
     p.write_text(

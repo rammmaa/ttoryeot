@@ -43,6 +43,23 @@ def test_reference_expression_extracted():
     assert SOURCE[ref.range.start_offset : ref.range.end_offset] == ref.text
 
 
+def test_inline_code_masked_from_kiwi():
+    """스펙 §5 — 인라인 코드는 Kiwi 분석에서 제외한다. 식별자가 명사구 후보로
+    유입되지 않아야 한다. 마스킹은 길이 보존 공백 치환이라 오프셋 불변식은 유지된다."""
+    doc = lower_document("a.md", "`user_table` 이 테이블을 조인한다.\n", KIWI)
+    phrases = [np.text for b in doc.blocks for s in b.sentences for np in s.noun_phrases]
+    joined = " ".join(phrases)
+    assert "user" not in joined and "table" not in joined
+    assert "테이블" in phrases  # 코드 밖 명사는 유지
+
+
+def test_dot_inside_inline_code_does_not_split_sentence():
+    doc = lower_document("a.md", "실행은 `run(). stop()` 다음에 한다.\n", KIWI)
+    sents = [s for b in doc.blocks for s in b.sentences]
+    assert len(sents) == 1
+    assert sents[0].text == "실행은 `run(). stop()` 다음에 한다."
+
+
 def test_midword_determiner_is_not_a_reference():
     """Kiwi가 미등록 외래어를 오분해하며 단어 중간에 만든 이/MM(예: '메모이제이션' →
     메모+이제+이/MM+션/NNP)은 지시어가 아니다 — 지시 관형사는 단어 경계에서만 시작한다.
