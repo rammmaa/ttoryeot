@@ -6,3 +6,10 @@ reference:
     role: 0.25
     head_match: 0.25
     recency: 0.1
+  # 지시어 뒤 명사(또는 head)가 아래 목록이면 REF101을 내지 않는다.
+  # 근거: 외부 코퍼스 실측(docs/research/2026-07-28-external-corpus-fp.md) —
+  # structural은 선행사가 링크·코드블록·문서 자체인 구조 참조,
+  # discourse는 선행 명제를 가리키는 담화 지시로, 둘 다 NP 후보 랭킹의 대상이 아니다.
+  suppress_heads:
+    structural: [글, 문서, 예시, 코드, 데모, 영상, 세션, 링크, 페이지, 포스트, 아티클, 블로그, 가이드]
+    discourse: [문제, 경우, 방법, 방식, 원칙, 변화, 내용, 이유, 과정, 점]
