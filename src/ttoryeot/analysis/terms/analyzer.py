@@ -16,7 +16,9 @@ def _definition_pattern(surface: str) -> re.Pattern:
 
 
 def _list_definition_pattern(surface: str) -> re.Pattern:
-    """list_item의 `용어: 정의` 형식 (스펙 §6.2)."""
+    """list_item의 `용어: 정의` 형식 (스펙 §6.2). 정의가 하드랩으로 여러 줄에
+    걸치면 탐지하지 못한다(문장 단위 매칭·`.`이 개행을 넘지 않음) — 조용한
+    미탐일 뿐 오탐은 없다."""
     esc = re.escape(surface)
     return re.compile(rf"^\s*{esc}\s*[:：]\s*(.+)$")
 

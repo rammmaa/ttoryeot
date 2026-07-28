@@ -33,6 +33,36 @@ def test_lint_config_reaches_analyzer(tmp_path):
     assert "REF101" not in res.output
 
 
+def test_lint_missing_config_exits_2(tmp_path):
+    res = runner.invoke(
+        app, ["lint", str(FIXTURE), "--config", str(tmp_path / "nope.yaml")]
+    )
+    assert res.exit_code == 2
+    assert "설정" in res.output
+
+
+def test_lint_null_section_config_runs_normally(tmp_path):
+    cfg = tmp_path / "null.yaml"
+    cfg.write_text("reference:\n", encoding="utf-8")
+    res = runner.invoke(
+        app,
+        ["lint", str(FIXTURE), "--terms", str(FIXTURE / "terms.yaml"),
+         "--config", str(cfg)],
+    )
+    assert res.exit_code == 1  # 크래시가 아니라 기본 설정으로 정상 진단
+    assert "REF101" in res.output
+
+
+def test_lint_missing_terms_exits_2(tmp_path):
+    """--terms 오타가 TermAnalyzer의 조용한 탈락(TERM 무진단 통과)으로 위장되면
+    안 된다 — 루트 가드와 동일한 원칙."""
+    res = runner.invoke(
+        app, ["lint", str(FIXTURE), "--terms", str(tmp_path / "nope.yaml")]
+    )
+    assert res.exit_code == 2
+    assert "용어 사전" in res.output
+
+
 def test_lint_missing_root_exits_2(tmp_path):
     """존재하지 않는 루트는 조용한 '클린'(exit 0)이 아니라 명확한 에러여야 한다 —
     경로 오타가 무진단 통과로 위장되는 것을 막는다."""
@@ -75,6 +105,46 @@ def test_bench_run_and_report_smoke(tmp_path):
     assert res.exit_code == 0
     report = (tmp_path / "report.md").read_text(encoding="utf-8")
     assert "baseline-regex" in report
+
+
+def test_bench_report_missing_dir_exits_2(tmp_path):
+    res = runner.invoke(
+        app, ["bench", "report", "--results-dir", str(tmp_path / "nope")]
+    )
+    assert res.exit_code == 2
+
+
+def test_bench_report_empty_dir_exits_2(tmp_path):
+    res = runner.invoke(app, ["bench", "report", "--results-dir", str(tmp_path)])
+    assert res.exit_code == 2
+    assert "bench run" in res.output
+
+
+def test_bench_convert_wrong_text_column_exits_2(tmp_path):
+    csv_path = tmp_path / "s.csv"
+    csv_path.write_text("잘못된헤더\n값\n", encoding="utf-8")
+    res = runner.invoke(
+        app,
+        ["bench", "convert", str(csv_path),
+         str(REPO / "benchmark" / "raw" / "columns.example.yaml"),
+         str(tmp_path / "o.jsonl")],
+    )
+    assert res.exit_code == 2
+    assert "원문" in res.output  # 어떤 열을 찾다 실패했는지 알려준다
+
+
+def test_bench_convert_incomplete_mapping_exits_2(tmp_path):
+    csv_path = tmp_path / "s.csv"
+    csv_path.write_text("원문\n문장입니다.\n", encoding="utf-8")
+    mapping = tmp_path / "columns.yaml"
+    mapping.write_text("text: 원문\n", encoding="utf-8")
+    res = runner.invoke(
+        app,
+        ["bench", "convert", str(csv_path), str(mapping),
+         str(tmp_path / "o.jsonl")],
+    )
+    assert res.exit_code == 2
+    assert "category" in res.output  # 누락 키를 알려준다
 
 
 def test_bench_convert_smoke(tmp_path):

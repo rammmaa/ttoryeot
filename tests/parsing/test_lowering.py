@@ -50,6 +50,11 @@ def test_midword_determiner_is_not_a_reference():
     의존이라 이 문장은 오분해가 재현되는 최소 사례다 — '…은 성능에 좋다'로 바꾸면
     통짜 NNP로 분석되어 테스트가 무의미해진다.)"""
     doc = lower_document("a.md", "메모이제이션은 좋다.\n", KIWI)
+    tokens = doc.blocks[0].sentences[0].tokens
+    assert any(t.form == "이" and t.tag in ("MM", "MMD") for t in tokens), (
+        "전제 붕괴: Kiwi 모델이 이 문장을 더 이상 오분해하지 않는다 — "
+        "단어 중간 이/MM이 재현되는 새 문장을 찾아 테스트를 갱신하라"
+    )
     refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
     assert refs == []
 

@@ -11,7 +11,11 @@ app.add_typer(bench_app, name="bench")
 def convert(csv_path: Path, mapping: Path, out: Path) -> None:
     from ttoryeot.bench.convert import convert_csv
 
-    n = convert_csv(csv_path, mapping, out)
+    try:
+        n = convert_csv(csv_path, mapping, out)
+    except (ValueError, OSError) as exc:
+        typer.echo(f"변환 실패: {exc}", err=True)
+        raise typer.Exit(code=2)
     typer.echo(f"{n}개 항목 변환 완료 → {out}")
 
 
@@ -48,6 +52,15 @@ def run(
 def report(results_dir: Path = typer.Option(Path("benchmark/results"))) -> None:
     from ttoryeot.bench.report import write_report
 
+    if not results_dir.is_dir():
+        typer.echo(f"결과 디렉터리가 존재하지 않습니다: {results_dir}", err=True)
+        raise typer.Exit(code=2)
+    if not any(results_dir.glob("*.json")):
+        typer.echo(
+            f"결과 JSON이 없습니다: {results_dir} — 먼저 ttoryeot bench run을 실행하세요",
+            err=True,
+        )
+        raise typer.Exit(code=2)
     out = write_report(results_dir)
     typer.echo(f"리포트 생성 → {out}")
 
@@ -58,13 +71,22 @@ def lint(
     terms: Path | None = typer.Option(None, help="용어 사전 YAML"),
     config: Path | None = typer.Option(None, help="설정 YAML (default.yaml 위에 덮어씀)"),
 ) -> None:
-    from ttoryeot.config import load_config
+    from ttoryeot.config import ConfigError, load_config
     from ttoryeot.runner import run_workspace
 
     if not root.is_dir():
         typer.echo(f"루트 디렉터리가 존재하지 않습니다: {root}", err=True)
         raise typer.Exit(code=2)
-    diags = run_workspace(root, terms, load_config(config))
+    if terms is not None and not terms.exists():
+        # 오타가 TermAnalyzer의 조용한 탈락(TERM 무진단 통과)으로 위장되면 안 된다
+        typer.echo(f"용어 사전 파일이 존재하지 않습니다: {terms}", err=True)
+        raise typer.Exit(code=2)
+    try:
+        cfg = load_config(config)
+    except ConfigError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=2)
+    diags = run_workspace(root, terms, cfg)
     for d in sorted(diags, key=lambda d: (d.range.file, d.range.start_line)):
         typer.echo(f"{d.range.file}:{d.range.start_line} {d.rule} {d.message}")
         for c in d.candidates:

@@ -1,4 +1,6 @@
-from ttoryeot.config import default_config, load_config
+import pytest
+
+from ttoryeot.config import ConfigError, default_config, load_config
 
 
 def test_default_config_has_reference_section():
@@ -24,6 +26,33 @@ def test_load_config_deep_merges_override(tmp_path):
     # 오버라이드하지 않은 키는 기본값 유지
     assert cfg["reference"]["window"] == default_config()["reference"]["window"]
     assert cfg["reference"]["weights"] == default_config()["reference"]["weights"]
+
+
+def test_load_config_missing_file_raises_config_error(tmp_path):
+    with pytest.raises(ConfigError):
+        load_config(tmp_path / "nope.yaml")
+
+
+def test_load_config_malformed_yaml_raises_config_error(tmp_path):
+    p = tmp_path / "bad.yaml"
+    p.write_text("reference: [unclosed", encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load_config(p)
+
+
+def test_load_config_non_mapping_raises_config_error(tmp_path):
+    p = tmp_path / "list.yaml"
+    p.write_text("- a\n- b\n", encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load_config(p)
+
+
+def test_load_config_null_section_keeps_defaults(tmp_path):
+    """자식을 전부 주석 처리해 `reference:`만 남긴 설정은 '오버라이드 없음'이어야
+    한다 — None이 섹션을 덮어쓰면 분석기에서 TypeError가 난다 (리뷰 지적 재현)."""
+    p = tmp_path / "null.yaml"
+    p.write_text("reference:\n", encoding="utf-8")
+    assert load_config(p) == default_config()
 
 
 def test_code_defaults_are_sourced_from_yaml():

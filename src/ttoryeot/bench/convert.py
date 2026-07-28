@@ -6,12 +6,29 @@ import yaml
 from ttoryeot.bench.schema import Annotation, Evidence, SentenceItem
 
 
+_REQUIRED_MAPPING_KEYS = (
+    "text", "correction", "category", "rationale",
+    "evidence_url", "confidence", "source", "document_type",
+)
+
+
 def convert_csv(csv_path: Path, mapping_path: Path, out_path: Path) -> int:
     m = yaml.safe_load(mapping_path.read_text(encoding="utf-8"))
+    if not isinstance(m, dict):
+        raise ValueError(f"columns.yaml 최상위는 매핑이어야 합니다: {mapping_path}")
+    missing = [k for k in _REQUIRED_MAPPING_KEYS if k not in m]
+    if missing:
+        raise ValueError(f"columns.yaml에 누락된 키: {', '.join(missing)}")
     severity = m.get("default_severity", "warning")
     items: list[SentenceItem] = []
     with csv_path.open(encoding="utf-8-sig") as f:
-        for i, row in enumerate(csv.DictReader(f), start=1):
+        reader = csv.DictReader(f)
+        if reader.fieldnames is None or m["text"] not in reader.fieldnames:
+            raise ValueError(
+                f"CSV에 원문 열 '{m['text']}'이 없습니다. "
+                f"실제 헤더: {reader.fieldnames}"
+            )
+        for i, row in enumerate(reader, start=1):
             text = row[m["text"]].strip()
             if not text:
                 continue

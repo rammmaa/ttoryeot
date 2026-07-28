@@ -13,7 +13,7 @@ class ReferenceAnalyzer:
     rule_ids = ("REF101",)
 
     def analyze(self, ws: WorkspaceIR, ctx: AnalysisContext) -> Iterable[Diagnostic]:
-        cfg = {**DEFAULTS, **ctx.config.get("reference", {})}
+        cfg = {**DEFAULTS, **(ctx.config.get("reference") or {})}
         for doc in ws.documents:
             # 문서 내 문장 시퀀스 (heading에서 윈도 리셋)
             window = []

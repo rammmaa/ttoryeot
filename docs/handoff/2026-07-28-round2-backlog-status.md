@@ -5,7 +5,9 @@
 
 ## 현재 상태
 
-- **1차 핸드오프의 Round-2 백로그 1~5번 전부 구현 완료** (`round2-backlog` 브랜치). 테스트 75/75.
+- **1차 핸드오프의 Round-2 백로그 1~5번 전부 구현 완료** (`round2-backlog` 브랜치). 테스트 86/86.
+- 브랜치 전체 리뷰 "With fixes" → Important 2건(아래 CLI 가드 표의 config·terms 항목)
+  포함 전부 반영 완료.
 - **외부 코퍼스 오탐 측정 완료** (1차 완료 기준 중 조사표 CSV가 필요 없는 항목):
   fe-news 29.0/1,000줄 · ko.react.dev 14.3/1,000줄, 무작위 표본 20건 전부 실질 오탐
   (구조 참조·담화 지시·자명한 1위). 시사점은 측정 문서 §Round-2 시사점.
@@ -21,6 +23,10 @@
 | config 주입 | `TtoryeotEngine(config=…)` — REF101 튜닝 스윕은 `TtoryeotEngine(config)` + `run_engine` 조합으로. CLI는 `lint --config <yaml>` |
 | bench run 가드 | 미등록 엔진 → 등록 목록 안내 + exit 2. 데이터 파일 부재 → `bench convert` 안내 + exit 2 |
 | lint 루트 가드 | 존재하지 않는 루트 → exit 2 (기존: 조용히 exit 0 '클린') |
+| lint --terms 가드 | 없는 사전 파일 → exit 2 (기존: TermAnalyzer 조용한 탈락 = TERM 무진단 통과 위장). runner도 이제 없는 파일을 조용히 건너뛰지 않음 |
+| lint --config 가드 | 없는 파일·YAML 파싱 실패·비매핑 최상위 → `ConfigError` + exit 2. 빈 섹션(`reference:`)은 '오버라이드 없음'으로 처리 (기존: 분석기 TypeError) |
+| bench convert 가드 | columns.yaml 누락 키·CSV에 원문 열 부재 → 무엇이 빠졌는지 안내 + exit 2 (기존: bare KeyError) — 조사표 변환 직전 대비 |
+| bench report 가드 | 결과 디렉터리 부재·결과 JSON 0개 → 안내 + exit 2 (기존: traceback / 헤더만 있는 빈 리포트) |
 | CLI 테스트 | `typer.testing.CliRunner` 스모크 — lint(진단·--config)·bench run/report/convert |
 | TERM 위치 정확화 | occurrence 줄·칸을 문장 내 개행 기준으로 정확 계산 (기존: 문장 시작 줄 근사, col=1 고정) |
 | list_item 정의 탐지 | `- 용어: 정의` 형식도 TERM102 정의로 인식 (스펙 §6.2 잔여 항목). 어미 '이다'·마침표 차이는 정규화로 흡수 |
@@ -46,6 +52,10 @@
 ## 주의사항 (이번에 배운 것)
 
 - macOS `sort | uniq -c`는 한글 협착 문제로 집계가 오염된다 — 분포 집계는 Python으로
+- list_item `용어: 정의` 탐지는 정의가 하드랩으로 여러 줄에 걸치면 조용히 미탐
+  (오탐은 없음) — 필요해지면 개행 허용 패턴으로 확장
+- 분석기의 config 읽기 계약: 자기 섹션을 `{**DEFAULTS, **(ctx.config.get("섹션") or {})}`
+  로 겹쳐 읽어야 부분 주입·빈 섹션에서 안전 (`analysis/base.py` 주석 참조)
 - Kiwi 분해는 문맥 의존: 같은 단어('메모이제이션')도 주변 어절에 따라 오분해 여부가
   달라진다. 회귀 테스트 문장을 바꿀 때 주의
 - 외부 코퍼스는 git-ignore됨 — 재현 명령은 측정 문서 §재현
