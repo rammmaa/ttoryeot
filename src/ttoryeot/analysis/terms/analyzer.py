@@ -63,7 +63,7 @@ class TermAnalyzer:
         된 구는 잡음이 많아 v1에서는 후보로 보지 않는다. opt-in (사전 성장 루프)."""
         min_count = int(tcfg.get("unknown_min_count", _TERM_DEFAULTS["unknown_min_count"]))
         min_docs = int(tcfg.get("unknown_min_docs", _TERM_DEFAULTS["unknown_min_docs"]))
-        known = {s for e in self.entries for s in [e.canonical, *e.aliases]}
+        known = {s for e in self.entries for s, _status in e.surfaces()}
         counts: dict[str, int] = {}
         docs: dict[str, set[str]] = {}
         first: dict[str, SourceRange] = {}
@@ -97,8 +97,9 @@ class TermAnalyzer:
         # TERM104: 사전이 정본을 정하면 혼용 여부와 무관하게 비권장 표기를 플래그
         # — 혼용 검출(TERM100/101)과 달리 고립 문서의 '오너쉽'류를 잡는다 (1차
         # 정량 실험에서 실증된 간극). 표기 정책 선택이므로 opt-in.
+        # admitted(써도 되는 이표기)는 제외한다 — 상태 축은 dictionary.TermStatus 참조.
         for o in occs:
-            if o.surface != entry.canonical:
+            if o.surface != entry.canonical and o.status == "deprecated":
                 yield Diagnostic(
                     rule="TERM104", severity="warning",
                     message=f"'{o.surface}'은(는) 사전 비권장 표기입니다 — 권장: '{entry.canonical}'.",

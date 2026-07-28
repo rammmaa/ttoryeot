@@ -14,7 +14,13 @@ terms:
 
 reference:
   window: 5
+  # 유해 모호성(nocuous ambiguity) 임계 — 1·2위 후보의 점수차가 이 값 미만이면
+  # 경고한다. Lappin & Leass(1994)의 salience difference threshold, Yang et al.(2011)의
+  # margin 조건, Ezzini et al.(ICSE 2022)의 θ_δ=0.1과 같은 계열의 연산이다.
   threshold: 0.2
+  # 절대 확신도 하한(Ezzini et al.의 θ_α 대응). 1위 점수가 이 값 미만이면 후보
+  # 집합 자체가 빈약하므로 격차와 무관하게 침묵한다.
+  min_top_score: 0.0
   # 2026-07-28 튜닝 스윕으로 확정 (docs/research/2026-07-28-ref101-tuning.md):
   # head_match 0.45는 '자명한 1위'(사람에겐 명백한 선행사) 오탐을 줄이면서
   # 시드·픽스처 가드를 전부 통과한다. threshold는 0.15부터 시드 recall이 죽는

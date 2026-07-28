@@ -88,6 +88,32 @@ def test_suppressed_head_hides_genuine_ambiguity_known_limitation(tmp_path):
     assert [d.rule for d in diags] == ["REF101"]
 
 
+def test_role_score_is_graded_by_case_particle():
+    """Centering(SUBJECT > OBJECT > OTHER)과 Lappin & Leass(subject 80 / accusative 50 /
+    oblique 40)의 다단계 문법역. 한국어는 조사로 역이 표면에 드러나 영어보다 싸게
+    구현된다 — 기존 1.0/0.3 이진에서 승격."""
+    from ttoryeot.analysis.references.candidates import ROLE_SCORES
+
+    assert ROLE_SCORES["subject"] > ROLE_SCORES["object"] > ROLE_SCORES["oblique"]
+    assert ROLE_SCORES["oblique"] > ROLE_SCORES["none"]
+
+
+def test_subject_candidate_outranks_object_candidate(tmp_path):
+    ws = make_ws(tmp_path,
+        "사용자 테이블이 주문 테이블을 참조합니다.\n\n해당 테이블을 조회합니다.\n")
+    diags = run(ws, {"reference": {"threshold": 1.0}})  # 항상 발화시켜 순위를 본다
+    assert diags and [c.text for c in diags[0].candidates][0] == "사용자 테이블"
+
+
+def test_min_top_score_suppresses_weak_candidate_sets(tmp_path):
+    """Ezzini et al.(ICSE 2022)의 θ_α — 격차만 보면 후보가 전부 약할 때도 침묵한다.
+    1위 점수 자체가 낮으면 근거가 빈약하므로 발화하지 않는다."""
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    assert [d.rule for d in run(ws)] == ["REF101"]
+    assert run(ws, {"reference": {"min_top_score": 0.99}}) == []
+
+
 def test_threshold_configurable(tmp_path):
     ws = make_ws(tmp_path,
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")

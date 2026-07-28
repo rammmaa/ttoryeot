@@ -46,7 +46,11 @@ class ReferenceAnalyzer:
                             if c.phrase.text not in seen:
                                 seen.add(c.phrase.text)
                                 unique.append(c)
-                        if len(unique) >= 2 and (unique[0].score - unique[1].score) < cfg["threshold"]:
+                        if (
+                            len(unique) >= 2
+                            and unique[0].score >= cfg.get("min_top_score", 0.0)
+                            and (unique[0].score - unique[1].score) < cfg["threshold"]
+                        ):
                             yield Diagnostic(
                                 rule="REF101", severity="warning",
                                 message=f"'{ref.text}'의 지시 대상이 불명확합니다.",

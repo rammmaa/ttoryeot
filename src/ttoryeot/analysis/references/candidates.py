@@ -4,7 +4,14 @@ from ttoryeot.config import default_config
 from ttoryeot.ir.models import NounPhrase, ReferenceExpression, SentenceIR
 
 DEFAULT_WEIGHTS = default_config()["reference"]["weights"]
-SUBJ_OBJ_PARTICLES = {"이", "가", "을", "를", "은", "는"}
+
+# 문법역 다단계 점수. Centering Theory(Grosz·Joshi·Weinstein 1995)의
+# SUBJECT > OBJECT(S) > OTHER 위계와 Lappin & Leass(1994) RAP의 salience 가중치
+# (subject 80 / accusative 50 / oblique 40)를 한국어 격조사에 대응시킨 것 —
+# 한국어는 역이 조사로 표면화되어 영어보다 싸게 판별된다.
+ROLE_SCORES = {"subject": 1.0, "object": 0.7, "oblique": 0.5, "none": 0.3}
+SUBJECT_PARTICLES = {"이", "가", "은", "는", "께서"}
+OBJECT_PARTICLES = {"을", "를"}
 
 
 class ScoredCandidate(BaseModel):
@@ -16,9 +23,14 @@ def _role_score(phrase: NounPhrase, sent: SentenceIR) -> float:
     for i, tok in enumerate(sent.tokens):
         if tok.range.end_offset == phrase.range.end_offset:
             nxt = sent.tokens[i + 1] if i + 1 < len(sent.tokens) else None
-            if nxt is not None and nxt.tag.startswith("J") and nxt.form in SUBJ_OBJ_PARTICLES:
-                return 1.0
-    return 0.3
+            if nxt is None or not nxt.tag.startswith("J"):
+                return ROLE_SCORES["none"]
+            if nxt.form in SUBJECT_PARTICLES:
+                return ROLE_SCORES["subject"]
+            if nxt.form in OBJECT_PARTICLES:
+                return ROLE_SCORES["object"]
+            return ROLE_SCORES["oblique"]  # 부사격·관형격 등 나머지 조사
+    return ROLE_SCORES["none"]
 
 
 def rank_candidates(
