@@ -66,13 +66,25 @@ def to_range(file: str, source: str, start: int, end: int) -> SourceRange:
     )
 
 
-def _noun_runs(tokens: list[Token]) -> list[list[Token]]:
-    """연속된 NNG|NNP|SL 토큰을 하나의 런으로 묶는다."""
+def _noun_runs(source: str, tokens: list[Token]) -> list[list[Token]]:
+    """연속된 NNG|NNP|SL 토큰을 하나의 런으로 묶는다.
+
+    원문 기준 토큰 사이 간격이 공백 1자를 넘으면 런을 끊는다 — 인라인 코드
+    마스킹으로 생긴 공백 영역을 런이 건너뛰어 병합되면, 구 텍스트(원문 슬라이스)에
+    마스킹했던 코드가 되돌아오는 결함이 있었다 (property 테스트로 실증).
+    소프트 줄바꿈 1자는 허용해 하드랩 문장의 구는 유지한다."""
     runs: list[list[Token]] = []
     run: list[Token] = []
+    prev_end = 0
     for tok in tokens + [None]:
         if tok is not None and tok.tag in NOUN_TAGS:
+            if run:
+                gap = source[prev_end:tok.range.start_offset]
+                if gap.strip() != "" or len(gap) > 1:
+                    runs.append(run)
+                    run = []
             run.append(tok)
+            prev_end = tok.range.end_offset
             continue
         if run:
             runs.append(run)
@@ -232,7 +244,7 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
                 )
                 for t in sent.tokens
             ]
-            runs = _noun_runs(tokens)
+            runs = _noun_runs(source, tokens)
             phrases = _noun_phrases(path, source, runs)
             sentences.append(
                 SentenceIR(

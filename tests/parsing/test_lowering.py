@@ -100,6 +100,37 @@ def test_blockquote_sentence_emitted_exactly_once():
     assert matching[0] == "인용된 문장입니다."
 
 
+CODE_DENSE_SOURCE = """# `run()` 사용법
+
+`user_table` 과 `order_table` 을 `join()` 으로 합칩니다. 결과는 `df.save()` 로 저장합니다.
+
+- `config.yaml` 의 `threshold` 값을 조정합니다.
+
+> 예외는 `try: run()` 블록에서 잡습니다. 이 값은 `None` 이 됩니다.
+"""
+
+
+def test_roundtrip_holds_in_code_dense_document():
+    """마스킹×오프셋 상호작용의 영구 고정 — 인라인 코드가 빽빽한 문서에서도
+    문장·명사구·지시어의 range 슬라이스가 원문과 정확히 일치해야 한다."""
+    doc = lower_document("a.md", CODE_DENSE_SOURCE, KIWI)
+    n_sent = 0
+    for block in doc.blocks:
+        for sent in block.sentences:
+            n_sent += 1
+            assert CODE_DENSE_SOURCE[sent.range.start_offset:sent.range.end_offset] == sent.text
+            for np in sent.noun_phrases:
+                assert CODE_DENSE_SOURCE[np.range.start_offset:np.range.end_offset] == np.text
+            for ref in sent.references:
+                assert CODE_DENSE_SOURCE[ref.range.start_offset:ref.range.end_offset] == ref.text
+    assert n_sent >= 4
+    phrases = " ".join(
+        np.text for b in doc.blocks for s in b.sentences for np in s.noun_phrases
+    )
+    for ident in ("user_table", "order_table", "join", "config", "threshold", "None"):
+        assert ident not in phrases  # 코드 식별자는 후보 우주에 없다
+
+
 def test_load_workspace_records_parse_error(tmp_path: Path):
     good = tmp_path / "good.md"
     good.write_text("정상 문서입니다.\n", encoding="utf-8")

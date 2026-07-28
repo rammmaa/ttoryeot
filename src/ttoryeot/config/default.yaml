@@ -2,6 +2,11 @@ terms:
   # true면 혼용 여부와 무관하게 사전의 비권장 표기(alias) 등장을 TERM104로 플래그.
   # 표기 정책(사전 권위 vs 사용 일관성) 선택이므로 기본 off.
   enforce_canonical: false
+  # true면 사전에 없는 조직 고유 용어 후보(NNP/SL 포함 명사구의 반복)를 TERM103
+  # info로 제안 — 사전 성장 루프용. 임계는 아래 두 값.
+  suggest_unknown: false
+  unknown_min_count: 3
+  unknown_min_docs: 2
 
 reference:
   window: 5
