@@ -71,6 +71,23 @@ def test_suppression_configurable_off(tmp_path):
     assert [d.rule for d in diags] == ["REF101"]
 
 
+def test_partial_suppress_override_keeps_other_group(tmp_path):
+    """suppress_heads를 부분만 오버라이드하면 나머지 그룹은 기본 목록을 유지해야
+    한다 — CLI(--config 딥머지)와 직접 주입의 의미가 갈리면 스윕 코드가 헛돈다."""
+    ws = make_ws(tmp_path, AMBIENT + "이 방법은 빠릅니다.\n")
+    assert run(ws, {"reference": {"suppress_heads": {"structural": []}}}) == []
+
+
+def test_suppressed_head_hides_genuine_ambiguity_known_limitation(tmp_path):
+    """의도된 v1 한계의 핀 — 두 구체적 '방법'이 경쟁해도 head가 담화 목록에 있으면
+    억제된다. round-3에서 same-head 후보 존재 시 억제 해제를 검토할 때 이 테스트를
+    갱신하라 (튜닝 챕터 한계 절 참조)."""
+    ws = make_ws(tmp_path, "조인 방법과 정렬 방법을 비교합니다.\n\n해당 방법을 사용합니다.\n")
+    assert run(ws) == []
+    diags = run(ws, {"reference": {"suppress_heads": {"structural": [], "discourse": []}}})
+    assert [d.rule for d in diags] == ["REF101"]
+
+
 def test_threshold_configurable(tmp_path):
     ws = make_ws(tmp_path,
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")

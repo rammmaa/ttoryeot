@@ -22,11 +22,11 @@
 ```
 $ ttoryeot lint docs/ --terms terms.yaml
 
-docs/deploy.md:3 TERM101 '데이터셋'는 다른 문서의 '데이터세트' 표기와 불일치합니다.
+docs/deploy.md:3 TERM101 '데이터셋'은(는) 다른 문서의 '데이터세트' 표기와 불일치합니다.
 docs/pipeline.md:3 TERM102 '데이터세트'의 정의가 다른 문서의 정의와 충돌합니다.
 docs/pipeline.md:7 REF101 '해당 데이터'의 지시 대상이 불명확합니다.
-    후보 0.75  주문 테이블
-    후보 0.57  사용자 테이블
+    후보 0.65  데이터세트
+    후보 0.55  주문 테이블
 ```
 
 ## 구조
@@ -63,6 +63,7 @@ uv run ttoryeot bench report
 
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
+- [REF101 튜닝 챕터](docs/research/2026-07-28-ref101-tuning.md)
 - [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
 - [설계 스펙](docs/superpowers/specs/2026-07-26-research-core-design.md)
 - [구현 플랜](docs/superpowers/plans/2026-07-26-research-core.md)

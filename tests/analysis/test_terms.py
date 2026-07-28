@@ -157,6 +157,16 @@ def test_term104_canonical_only_is_clean_when_enabled(tmp_path):
     assert diags == []
 
 
+def test_term104_and_mixing_rules_are_orthogonal(tmp_path):
+    """혼용 사실(TERM100/101)과 정책 위반(TERM104)은 별개 진단이다 — enforce가 켜진
+    상태에서 혼용이 있으면 같은 occurrence에 둘 다 보고되는 것이 의도."""
+    ws = make_ws(tmp_path, {"a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n"})
+    diags = list(TermAnalyzer(ENTRIES).analyze(
+        ws, AnalysisContext(config={"terms": {"enforce_canonical": True}})))
+    rules = {d.rule for d in diags}
+    assert {"TERM100", "TERM104"} <= rules
+
+
 def test_load_dictionary(tmp_path):
     p = tmp_path / "terms.yaml"
     p.write_text(

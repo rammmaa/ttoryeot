@@ -14,8 +14,12 @@ class ReferenceAnalyzer:
 
     def analyze(self, ws: WorkspaceIR, ctx: AnalysisContext) -> Iterable[Diagnostic]:
         cfg = {**DEFAULTS, **(ctx.config.get("reference") or {})}
+        # suppress_heads는 그룹 단위로도 부분 오버라이드를 허용한다 — 섹션 통째
+        # 치환이면 CLI(--config 딥머지) 경로와 직접 주입 경로의 의미가 갈린다.
+        groups = {**(DEFAULTS.get("suppress_heads") or {}),
+                  **(cfg.get("suppress_heads") or {})}
         suppress: set[str] = set()
-        for group in (cfg.get("suppress_heads") or {}).values():
+        for group in groups.values():
             suppress.update(group or [])
         for doc in ws.documents:
             # 문서 내 문장 시퀀스 (heading에서 윈도 리셋)

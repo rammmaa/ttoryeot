@@ -60,7 +60,7 @@ class TermAnalyzer:
             if o.surface != entry.canonical:
                 yield Diagnostic(
                     rule="TERM104", severity="warning",
-                    message=f"'{o.surface}'는 사전 비권장 표기입니다 — 권장: '{entry.canonical}'.",
+                    message=f"'{o.surface}'은(는) 사전 비권장 표기입니다 — 권장: '{entry.canonical}'.",
                     range=o.range,
                 )
 
@@ -81,7 +81,7 @@ class TermAnalyzer:
                 if o.doc_path == doc_path and o.surface != entry.canonical:
                     yield Diagnostic(
                         rule="TERM100", severity="warning",
-                        message=f"'{o.surface}'와 '{entry.canonical}' 표기가 같은 문서에서 혼용됩니다.",
+                        message=f"'{o.surface}'와(과) '{entry.canonical}' 표기가 같은 문서에서 혼용됩니다.",
                         range=o.range,
                     )
         # TERM101: 문서 간 혼용 — 이미 TERM100으로 보고된 문서는 중복 보고하지 않는다.
@@ -90,7 +90,7 @@ class TermAnalyzer:
                 if o.surface != entry.canonical and o.doc_path not in docs_with_mixing:
                     yield Diagnostic(
                         rule="TERM101", severity="warning",
-                        message=f"'{o.surface}'는 다른 문서의 '{entry.canonical}' 표기와 불일치합니다.",
+                        message=f"'{o.surface}'은(는) 다른 문서의 '{entry.canonical}' 표기와 불일치합니다.",
                         range=o.range,
                     )
 

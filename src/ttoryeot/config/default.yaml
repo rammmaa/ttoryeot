@@ -6,10 +6,14 @@ terms:
 reference:
   window: 5
   threshold: 0.2
+  # 2026-07-28 튜닝 스윕으로 확정 (docs/research/2026-07-28-ref101-tuning.md):
+  # head_match 0.45는 '자명한 1위'(사람에겐 명백한 선행사) 오탐을 줄이면서
+  # 시드·픽스처 가드를 전부 통과한다. threshold는 0.15부터 시드 recall이 죽는
+  # 절벽이 있어 0.2 유지.
   weights:
-    distance: 0.4
-    role: 0.25
-    head_match: 0.25
+    distance: 0.3
+    role: 0.15
+    head_match: 0.45
     recency: 0.1
   # 지시어 뒤 명사(또는 head)가 아래 목록이면 REF101을 내지 않는다.
   # 근거: 외부 코퍼스 실측(docs/research/2026-07-28-external-corpus-fp.md) —

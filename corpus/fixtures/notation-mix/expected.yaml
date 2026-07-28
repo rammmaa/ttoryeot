@@ -1,0 +1,10 @@
+diagnostics:
+  - rule: TERM100
+    file: docs/culture.md
+    line: 3
+  - rule: TERM101
+    file: docs/hiring.md
+    line: 1
+clean_files:
+  - docs/faq.md
+  - docs/onboarding.md

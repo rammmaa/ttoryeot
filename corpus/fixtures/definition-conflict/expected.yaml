@@ -1,0 +1,7 @@
+diagnostics:
+  - rule: TERM102
+    file: docs/pipeline.md
+    line: 1
+clean_files:
+  - docs/guide.md
+  - glossary.md
