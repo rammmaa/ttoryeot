@@ -15,6 +15,22 @@ def _definition_pattern(surface: str) -> re.Pattern:
     )
 
 
+def _list_definition_pattern(surface: str) -> re.Pattern:
+    """list_item의 `용어: 정의` 형식 (스펙 §6.2)."""
+    esc = re.escape(surface)
+    return re.compile(rf"^\s*{esc}\s*[:：]\s*(.+)$")
+
+
+_TRAILING_COPULA = re.compile(r"(?:이다|입니다|를 말합니다|을 말합니다)?\.?\s*$")
+
+
+def _normalize_definition(raw: str) -> str:
+    """공백을 접고 꼬리의 서술 어미·마침표를 떼어, 프로즈형('…의 집합이다')과
+    list_item형('…의 집합') 정의를 같은 내용이면 같은 문자열로 만든다.
+    '사이다'처럼 어미와 표면이 겹치는 명사로 끝나는 정의는 과하게 잘리는 알려진 한계."""
+    return _TRAILING_COPULA.sub("", " ".join(raw.split()), count=1)
+
+
 class TermAnalyzer:
     rule_ids = ("TERM100", "TERM101", "TERM102")
 
@@ -61,13 +77,15 @@ class TermAnalyzer:
     def _conflicting_definitions(
         self, ws: WorkspaceIR, entry: TermEntry
     ) -> Iterable[Diagnostic]:
-        pattern = _definition_pattern(entry.canonical)
+        prose = _definition_pattern(entry.canonical)
+        listdef = _list_definition_pattern(entry.canonical)
         found: list[tuple[str, str, object]] = []  # (normalized_def, doc, range)
-        for doc, _block, sent in ws.iter_sentences():
-            m = pattern.search(sent.text)
+        for doc, block, sent in ws.iter_sentences():
+            m = prose.search(sent.text)
+            if m is None and block.kind == "list_item":
+                m = listdef.match(sent.text)
             if m:
-                normalized = " ".join(m.group(1).split())
-                found.append((normalized, doc.path, sent.range))
+                found.append((_normalize_definition(m.group(1)), doc.path, sent.range))
         # glossary 파일의 정의를 정본으로 우선 — 충돌 진단은 나머지 정의 위치에 단다
         found.sort(key=lambda f: (0 if "glossary" in f[1] else 1, f[1]))
         definitions = {d for d, _, _ in found}

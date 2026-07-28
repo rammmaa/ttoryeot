@@ -77,6 +77,55 @@ def test_term102_identical_definition_is_not_flagged(tmp_path):
     assert term102[0].range.file == "pipeline.md"
 
 
+def test_occurrence_line_col_exact_for_wrapped_sentence(tmp_path):
+    """하드랩으로 줄바꿈을 걸친 문장 안의 occurrence는 문장 시작 줄 근사가 아니라
+    실제 등장 줄·칸을 가리켜야 한다 (오프셋은 이전에도 정확했다)."""
+    from ttoryeot.analysis.terms.dictionary import build_symbol_table
+
+    source = "이 문서는 아주 긴 문장을 하드랩으로\n이어 쓰다가 데이터셋을 언급합니다.\n"
+    ws = make_ws(tmp_path, {"a.md": source})
+    table = build_symbol_table(ws, ENTRIES)
+    occ = next(o for o in table["데이터세트"] if o.surface == "데이터셋")
+    assert occ.range.start_line == 2
+    assert occ.range.start_col == 8  # "이어 쓰다가 " 7자 다음
+    assert occ.range.end_line == 2
+    assert occ.range.end_col == 12
+    assert source[occ.range.start_offset:occ.range.end_offset] == "데이터셋"
+
+
+def test_term102_list_item_definition_conflict(tmp_path):
+    """스펙 §6.2 — list_item의 `용어: 정의` 형식도 정의로 인식해 충돌을 잡아야 한다."""
+    ws = make_ws(tmp_path, {
+        "glossary.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "guide.md": "- 데이터세트: 단일 BigQuery 테이블\n",
+    })
+    diags = run(ws)
+    term102 = [d for d in diags if d.rule == "TERM102"]
+    assert len(term102) == 1
+    assert term102[0].range.file == "guide.md"
+
+
+def test_term102_list_item_same_definition_not_flagged(tmp_path):
+    """list_item 정의가 정본과 같은 내용이면 (어미 '이다'·마침표 차이만으로)
+    충돌로 보고하면 안 된다."""
+    ws = make_ws(tmp_path, {
+        "glossary.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "guide.md": "- 데이터세트: 분석 가능한 논리적 테이블의 집합이다.\n",
+    })
+    assert [d.rule for d in run(ws)] == []
+
+
+def test_prose_definition_in_list_item_still_detected(tmp_path):
+    """list_item 안의 프로즈형 정의('X란 …이다')는 기존대로 탐지되어야 한다."""
+    ws = make_ws(tmp_path, {
+        "glossary.md": "데이터세트란 분석 가능한 논리적 테이블의 집합이다.\n",
+        "guide.md": "- 데이터세트란 단일 BigQuery 테이블이다.\n",
+    })
+    term102 = [d for d in run(ws) if d.rule == "TERM102"]
+    assert len(term102) == 1
+    assert term102[0].range.file == "guide.md"
+
+
 def test_consistent_usage_is_clean(tmp_path):
     ws = make_ws(tmp_path, {
         "a.md": "데이터세트를 만듭니다.\n",
