@@ -4,6 +4,7 @@ from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
 from ttoryeot.analysis.terms.dictionary import TermEntry, TermOccurrence, build_symbol_table
+from ttoryeot.analysis.terms.variants import is_variant_candidate_pair, normalize
 from ttoryeot.config import default_config
 from ttoryeot.diagnostics.models import Diagnostic
 from ttoryeot.ir.models import WorkspaceIR
@@ -29,6 +30,66 @@ _TRAILING_COPULA = re.compile(r"(?:이다|입니다|를 말합니다|을 말합�
 
 _TERM_DEFAULTS = default_config()["terms"]
 
+# 어간 표면형을 얻기 위해 꼬리에서 떼는 태그. 구두점은 SL(로마자)·SN(숫자)·SH(한자)를
+# 제외한 기호류만 포함한다 — 로마자·숫자는 표기의 일부일 수 있다.
+_STRIPPABLE_SUFFIX_TAGS = {
+    "XSV", "XSA", "XSN", "VCP", "VCN",
+    "SF", "SP", "SS", "SE", "SO", "SW", "SSO", "SSC",
+}
+
+
+def _variant_candidates(sent) -> list[tuple[str, SourceRange]]:
+    """표기 변이 후보 표면형을 두 경로로 모은다.
+
+    (1) 명사구 — '데이터 세트'처럼 어절을 걸친 띄어쓰기 변이를 잡는다.
+    (2) 조사를 뗀 어절 — 외래어 변이('오너십'/'오너쉽')는 **Kiwi가 오분석하는
+        바로 그 단어**라서 명사구로 잡히지 않는다(오너+십, 오너+쉽/VA). 변이 탐지가
+        분석기의 실패 지점을 대상으로 하므로, 분석에 덜 의존하는 표면형이 필요하다.
+    """
+    out = [(np.text, np.range) for np in sent.noun_phrases]
+    base = sent.range.start_offset
+    eojeol_start = 0
+    text = sent.text
+    while eojeol_start < len(text):
+        end = eojeol_start
+        while end < len(text) and not text[end].isspace():
+            end += 1
+        if end > eojeol_start:
+            inner = [
+                t for t in sent.tokens
+                if base + eojeol_start <= t.range.start_offset < base + end
+            ]
+            # 조사·어미·파생 접미사·구두점을 떼어 어간 표면형만 남긴다.
+            # XSV/XSA/XSN을 떼면 '공유하'→'공유', '웹사이트들'→'웹사이트'가 되어
+            # 활용·굴절형이 후보로 새지 않는다. 구두점 토큰(SF/SP/…)도 떼야 하는데,
+            # 안 떼면 '제공하며,'의 쉼표가 그 앞 어미의 스트립을 막는다.
+            # 반면 오분석된 외래어('오너쉽'의 쉽/VA-I)는 떼지 않아야 표면형이 보존된다.
+            while inner and (inner[-1].tag[0] in ("J", "E")
+                             or inner[-1].tag in _STRIPPABLE_SUFFIX_TAGS):
+                inner.pop()
+            # 용언 어절은 표기 변이 후보가 아니다 — 활용형끼리 자소가 가까워
+            # ('만들어가/만들어본', '알려주/알려진') 노이즈의 큰 축이었다.
+            # 첫 토큰으로 판정해야 오분석된 외래어('오너쉽' = 오너/NNG + 쉽/VA-I)가
+            # 살아남는다.
+            if inner and inner[0].tag[0] == "V":
+                inner = []
+            if inner:
+                stem_end = inner[-1].range.end_offset - base
+                surface = text[eojeol_start:stem_end].strip("\"'`.,·:;!?()[]{}<>")
+                if surface and any(ch.isalnum() for ch in surface):
+                    out.append((
+                        surface,
+                        SourceRange(
+                            file=sent.range.file,
+                            start_line=sent.range.start_line, start_col=1,
+                            end_line=sent.range.start_line, end_col=1,
+                            start_offset=base + eojeol_start,
+                            end_offset=base + stem_end,
+                        ),
+                    ))
+        eojeol_start = end + 1
+    return out
+
 
 def _normalize_definition(raw: str) -> str:
     """공백을 접고 꼬리의 서술 어미·마침표를 떼어, 프로즈형('…의 집합이다')과
@@ -38,7 +99,7 @@ def _normalize_definition(raw: str) -> str:
 
 
 class TermAnalyzer:
-    rule_ids = ("TERM100", "TERM101", "TERM102", "TERM103", "TERM104")
+    rule_ids = ("TERM100", "TERM101", "TERM102", "TERM103", "TERM104", "TERM105")
 
     def __init__(self, entries: list[TermEntry]):
         self.entries = entries
@@ -54,6 +115,86 @@ class TermAnalyzer:
                 yield from self._nonpreferred_surface(entry, occs)
         if tcfg.get("suggest_unknown"):
             yield from self._unknown_terms(ws, tcfg)
+        if tcfg.get("suggest_variants"):
+            yield from self._notation_variants(ws, tcfg)
+
+    def _notation_variants(self, ws: WorkspaceIR, tcfg: dict) -> Iterable[Diagnostic]:
+        """TERM105: 사전에 없는 표기 변이 후보를 자소 거리로 발견한다.
+
+        TERM100/101은 사전에 적힌 표기만 볼 수 있어, 아직 등재되지 않은 혼용은
+        원리적으로 탐지하지 못한다. 이 규칙이 그 공백을 메운다 (RedPen의 읽기 기반
+        변이 그룹핑의 한국어 자소판). 제안이므로 info + opt-in.
+        """
+        max_ratio = float(tcfg.get("variant_max_ratio",
+                                   _TERM_DEFAULTS["variant_max_ratio"]))
+        min_count = int(tcfg.get("variant_min_count",
+                                 _TERM_DEFAULTS["variant_min_count"]))
+        min_syllables = int(tcfg.get("variant_min_syllables",
+                                     _TERM_DEFAULTS["variant_min_syllables"]))
+        max_distance = int(tcfg.get("variant_max_distance",
+                                    _TERM_DEFAULTS["variant_max_distance"]))
+        minority_ratio = float(tcfg.get("variant_minority_ratio",
+                                        _TERM_DEFAULTS["variant_minority_ratio"]))
+        minority_max_count = int(tcfg.get("variant_minority_max_count",
+                                          _TERM_DEFAULTS["variant_minority_max_count"]))
+        known = {s for e in self.entries for s, _status in e.surfaces()}
+
+        counts: dict[str, int] = {}
+        first: dict[str, SourceRange] = {}
+        for _doc, _block, sent in ws.iter_sentences():
+            for text, rng in _variant_candidates(sent):
+                counts[text] = counts.get(text, 0) + 1
+                first.setdefault(text, rng)
+
+        # 같은 정규화 자소 길이대끼리만 비교해 O(n^2) 폭발을 막는다
+        buckets: dict[tuple[str, int], list[str]] = {}
+        for text, n in counts.items():
+            if n < min_count:
+                continue
+            norm = normalize(text)
+            if not norm:
+                continue
+            for length in (len(norm) - 1, len(norm), len(norm) + 1):
+                buckets.setdefault((norm[0], length), []).append(text)
+
+        reported: set[tuple[str, str]] = set()
+        for group in buckets.values():
+            for i, a in enumerate(group):
+                for b in group[i + 1:]:
+                    pair = tuple(sorted((a, b)))
+                    if pair in reported or a == b:
+                        continue
+                    if a in known and b in known:
+                        continue  # 사전에 있으면 TERM100/101 담당
+                    if not is_variant_candidate_pair(
+                        a, b, min_syllables=min_syllables,
+                        max_distance=max_distance, max_ratio=max_ratio,
+                    ):
+                        continue
+                    # 빈도 비대칭: 표기 변이는 소수 이형태이고, 대등한 빈도로 공존하면
+                    # 서로 다른 어휘일 가능성이 높다('온라인'/'오프라인').
+                    # 소수 표기가 절대적으로 드물거나(작은 문서 집합) 상대적으로
+                    # 희소해야(큰 코퍼스) 후보로 인정한다.
+                    na, nb = counts[a], counts[b]
+                    minority = min(na, nb)
+                    if (minority > minority_max_count
+                            and minority / max(na, nb) > minority_ratio):
+                        continue
+                    reported.add(pair)
+                    lo, hi = pair
+                    # 띄어쓰기 변이(정규화 후 동일)와 철자 변이를 구분해 알린다 —
+                    # 실측 정밀도가 크게 다르다(표본 30건: 띄어쓰기 6/6 vs 철자 ~20%).
+                    kind = "띄어쓰기" if normalize(lo) == normalize(hi) else "철자"
+                    yield Diagnostic(
+                        rule="TERM105", severity="info",
+                        message=(
+                            f"{kind} 변이 후보입니다: '{lo}'({counts[lo]}회) / "
+                            f"'{hi}'({counts[hi]}회) — 하나로 통일하고 용어 사전에 "
+                            f"등록할지 검토하세요."
+                        ),
+                        range=first[lo] if first[lo].start_offset
+                        <= first[hi].start_offset else first[hi],
+                    )
 
     def _unknown_terms(
         self, ws: WorkspaceIR, tcfg: dict
