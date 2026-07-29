@@ -94,8 +94,26 @@ def test_role_score_is_graded_by_case_particle():
     구현된다 — 기존 1.0/0.3 이진에서 승격."""
     from ttoryeot.analysis.references.candidates import ROLE_SCORES
 
-    assert ROLE_SCORES["subject"] > ROLE_SCORES["object"] > ROLE_SCORES["oblique"]
-    assert ROLE_SCORES["oblique"] > ROLE_SCORES["none"]
+    assert ROLE_SCORES["topic"] > ROLE_SCORES["subject"] > ROLE_SCORES["object"]
+    assert ROLE_SCORES["object"] > ROLE_SCORES["oblique"] > ROLE_SCORES["none"]
+
+
+def test_topic_particle_outranks_nominative():
+    """한국어 고유 신호 — 주제 표지 은/는(JX)은 주격 이/가(JKS)와 다른 형태소이고,
+    담화 현저성이 더 높다. 영어 Centering이 주제를 '추론'해야 하는 것과 달리 한국어는
+    표면에 찍혀 있다 (일본어 centering의 TOPIC > SUBJECT 위계와 같은 계열).
+    이 둘을 뭉치면 한국어가 공짜로 주는 신호를 버리는 셈이다."""
+    from ttoryeot.analysis.references.candidates import _role_score
+    from ttoryeot.parsing.lowering import lower_document
+    from ttoryeot.parsing.workspace import get_kiwi
+
+    def role_of(text: str) -> float:
+        doc = lower_document("a.md", text + "\n", get_kiwi())
+        sent = doc.blocks[0].sentences[0]
+        return _role_score(sent.noun_phrases[0], sent)
+
+    assert role_of("주문 테이블은 크다.") > role_of("주문 테이블이 크다.")
+    assert role_of("주문 테이블이 크다.") > role_of("주문 테이블을 만든다.")
 
 
 def test_subject_candidate_outranks_object_candidate(tmp_path):

@@ -7,10 +7,17 @@ DEFAULT_WEIGHTS = default_config()["reference"]["weights"]
 
 # 문법역 다단계 점수. Centering Theory(Grosz·Joshi·Weinstein 1995)의
 # SUBJECT > OBJECT(S) > OTHER 위계와 Lappin & Leass(1994) RAP의 salience 가중치
-# (subject 80 / accusative 50 / oblique 40)를 한국어 격조사에 대응시킨 것 —
-# 한국어는 역이 조사로 표면화되어 영어보다 싸게 판별된다.
-ROLE_SCORES = {"subject": 1.0, "object": 0.7, "oblique": 0.5, "none": 0.3}
-SUBJECT_PARTICLES = {"이", "가", "은", "는", "께서"}
+# (subject 80 / accusative 50 / oblique 40)를 한국어 조사에 대응시킨 것.
+#
+# 위계 맨 위에 topic을 둔 것이 한국어(및 일본어) 고유다 — 영어 Centering은 주제를
+# 통사에서 '추론'해야 하지만, 한국어는 주제 보조사 은/는(JX)이 주격 이/가(JKS)와
+# 형태소 자체가 다르다. 담화 현저성이 표면에 표지되어 있으므로 그대로 읽어 쓴다
+# (일본어 centering 연구의 TOPIC > SUBJECT 위계와 같은 계열).
+ROLE_SCORES = {
+    "topic": 1.0, "subject": 0.85, "object": 0.7, "oblique": 0.5, "none": 0.3,
+}
+TOPIC_PARTICLES = {"은", "는"}
+SUBJECT_PARTICLES = {"이", "가", "께서"}
 OBJECT_PARTICLES = {"을", "를"}
 
 
@@ -27,6 +34,8 @@ def _role_score(phrase: NounPhrase, sent: SentenceIR) -> float:
             nxt = sent.tokens[i + 1] if i + 1 < len(sent.tokens) else None
             if nxt is None or not nxt.tag.startswith("J"):
                 return ROLE_SCORES["none"]
+            if nxt.form in TOPIC_PARTICLES:
+                return ROLE_SCORES["topic"]
             if nxt.form in SUBJECT_PARTICLES:
                 return ROLE_SCORES["subject"]
             if nxt.form in OBJECT_PARTICLES:
