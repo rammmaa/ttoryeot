@@ -75,6 +75,14 @@ uv run ttoryeot bench run --data benchmark/data/sample-sentences.jsonl --engine 
 uv run ttoryeot bench report
 ```
 
+사전에 아직 없는 표기 혼용은 자소 거리로 발견할 수 있다 (`terms.suggest_variants: true`,
+기본 off — 띄어쓰기 변이는 거의 확정적이고 철자 변이는 제안 수준이다):
+
+```
+docs/guide.md:12 TERM105 띄어쓰기 변이 후보입니다: '오픈 소스'(2회) / '오픈소스'(84회) …
+docs/intro.md:5  TERM105 철자 변이 후보입니다: '랜더링'(4회) / '렌더링'(205회) …
+```
+
 용어 사전(`terms.yaml`)의 별칭은 표기 상태를 가질 수 있다 — ISO 704·TBX의
 `preferred / admitted / deprecated` 축에 대응한다:
 
