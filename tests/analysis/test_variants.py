@@ -123,6 +123,32 @@ def test_balanced_frequency_pairs_are_excluded(tmp_path):
     assert not any("오프라인" in m and "온라인" in m for m in pairs)
 
 
+def test_candidates_inside_inline_code_are_excluded(tmp_path):
+    """인라인 코드 안의 표기는 후보가 아니다 — 명사구 경로는 이미 걸러지는데
+    어절 경로가 원문에서 다시 긁어와 코드 속 용어로 진단이 나던 결함."""
+    ws = make_ws(tmp_path, {
+        "a.md": "설정은 `데이터세트` 입니다. 값은 `데이터세트` 입니다.\n",
+        "b.md": "우리는 데이터 세트를 씁니다. 데이터 세트를 봅니다.\n",
+    })
+    assert [d for d in TermAnalyzer([]).analyze(ws, ON) if d.rule == "TERM105"] == []
+
+
+def test_candidate_range_covers_the_named_surface(tmp_path):
+    """진단 범위가 실제로 그 표면형을 덮어야 한다 — 종전엔 col=1 고정에 앞뒤
+    구두점까지 포함된 범위였다."""
+    ws = make_ws(tmp_path, {
+        "a.md": ("오픈소스를 씁니다. 오픈소스를 만듭니다. 오픈소스를 봅니다.\n"
+                 "오픈소스를 논합니다. 오픈소스가 좋습니다.\n"),
+        "b.md": "우리는 오픈 소스를 씁니다. 오픈 소스를 좋아합니다.\n",
+    })
+    diags = [d for d in TermAnalyzer([]).analyze(ws, ON) if d.rule == "TERM105"]
+    assert len(diags) == 1
+    d = diags[0]
+    source = (tmp_path / d.range.file).read_text(encoding="utf-8")
+    assert source[d.range.start_offset:d.range.end_offset] in ("오픈소스", "오픈 소스")
+    assert d.range.start_col > 0
+
+
 def test_term105_ignores_distinct_terms(tmp_path):
     ws = make_ws(tmp_path, {
         "a.md": "사용자가 접속합니다. 사용자를 봅니다.\n",

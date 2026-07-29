@@ -32,6 +32,34 @@ def test_disable_next_line(tmp_path):
     assert ws(tmp_path, body) == []
 
 
+def test_pragma_inside_code_fence_is_not_a_pragma(tmp_path):
+    """문법을 문서화한 코드블록이 스스로를 억제하면 안 된다 — 실제로 이 저장소의
+    README가 자기 진단을 전부 끄고 있었다. 조용한 미탐이라 더 위험하다."""
+    body = (
+        "````markdown\n<!-- ttoryeot:disable -->\n````\n\n" + MIXED
+    )
+    assert [d.rule for d in ws(tmp_path, body)] == ["TERM100"]
+
+
+def test_pragma_inside_inline_code_is_not_a_pragma(tmp_path):
+    body = "산문에서 `<!-- ttoryeot:disable -->` 를 설명합니다.\n\n" + MIXED
+    assert [d.rule for d in ws(tmp_path, body)] == ["TERM100"]
+
+
+def test_rule_list_accepts_comma_separation(tmp_path):
+    """쉼표 구분은 가장 자연스러운 추측인데 종전엔 통째로 무시되어 아무것도
+    억제하지 않았다 — 피드백 없는 실패였다."""
+    assert ws(tmp_path, "<!-- ttoryeot:disable TERM100,REF101 -->\n\n" + MIXED) == []
+
+
+def test_unknown_rule_name_is_reported(tmp_path):
+    """오타 난 규칙 이름은 조용히 no-op이 되면 안 된다."""
+    diags = ws(tmp_path, "<!-- ttoryeot:disable term100 -->\n\n" + MIXED)
+    rules = [d.rule for d in diags]
+    assert "INT002" in rules  # 알 수 없는 규칙 이름 경고
+    assert "TERM100" in rules  # 억제되지 않고 원 진단도 유지
+
+
 def test_disable_next_line_only_affects_that_line(tmp_path):
     body = "<!-- ttoryeot:disable-next-line -->\n데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n"
     assert [d.rule for d in ws(tmp_path, body)] == ["TERM100"]

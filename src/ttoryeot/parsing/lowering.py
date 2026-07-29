@@ -36,21 +36,34 @@ DETERMINER_DEMONSTRATIVES = {"이", "그"}
 _DETERMINER_TAGS = {"MM", "MMD"}
 
 
-_INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
+INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
+_INLINE_CODE = INLINE_CODE  # 하위 호환 별칭
 
 _PRAGMA = re.compile(
-    r"<!--\s*ttoryeot:(disable|disable-next-line)((?:\s+[A-Za-z]+\d+)*)\s*-->"
+    r"<!--\s*ttoryeot:(disable|disable-next-line)([^->]*)-->"
 )
 
 
-def _parse_suppressions(source: str) -> list[Suppression]:
+def _line_of(source: str, offset: int) -> int:
+    return source.count("\n", 0, offset) + 1
+
+
+def _parse_suppressions(source: str, skip: list[tuple[int, int]]) -> list[Suppression]:
+    """`<!-- ttoryeot:disable [규칙…] -->` 지시를 원문에서 읽는다.
+
+    `skip`(코드블록·인라인 코드 범위) 안의 매치는 무시한다 — 프라그마 문법을
+    문서화한 코드블록이 그 문서의 진단을 통째로 끄면 조용한 미탐이 된다.
+    규칙 목록은 공백과 쉼표 모두로 구분한다(쉼표가 가장 자연스러운 추측이다).
+    """
     suppressions = []
-    for line_no, line in enumerate(source.split("\n"), start=1):
-        for m in _PRAGMA.finditer(line):
-            scope = "file" if m.group(1) == "disable" else "next_line"
-            suppressions.append(Suppression(
-                scope=scope, rules=m.group(2).split(), line=line_no,
-            ))
+    for m in _PRAGMA.finditer(source):
+        if any(a < m.end() and m.start() < b for a, b in skip):
+            continue
+        scope = "file" if m.group(1) == "disable" else "next_line"
+        rules = [r for r in re.split(r"[\s,]+", m.group(2)) if r]
+        suppressions.append(Suppression(
+            scope=scope, rules=rules, line=_line_of(source, m.start()),
+        ))
     return suppressions
 
 
@@ -256,6 +269,17 @@ def _references(
 
 def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
     blocks_ir: list[Block] = []
+    # 프라그마 판정에서 제외할 범위: 펜스 코드블록 + 인라인 코드
+    pragma_skip: list[tuple[int, int]] = [
+        (m.start(), m.end()) for m in _INLINE_CODE.finditer(source)
+    ]
+    line_starts = [0] + [i + 1 for i, ch in enumerate(source) if ch == "\n"]
+    for raw in parse_blocks(source):
+        if raw.kind == "code_block":
+            # code_block은 text가 비어 있으므로 줄 범위로 실제 구간을 잡는다
+            end = (line_starts[raw.end_line] if raw.end_line < len(line_starts)
+                   else len(source))
+            pragma_skip.append((raw.start_offset, end))
     for raw in parse_blocks(source):
         block_range = to_range(
             path, source, raw.start_offset, raw.start_offset + len(raw.text)
@@ -314,5 +338,5 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
         path=path,
         content_hash=hashlib.sha256(source.encode()).hexdigest()[:16],
         blocks=blocks_ir,
-        suppressions=_parse_suppressions(source),
+        suppressions=_parse_suppressions(source, pragma_skip),
     )

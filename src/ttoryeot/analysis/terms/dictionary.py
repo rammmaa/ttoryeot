@@ -52,7 +52,9 @@ def load_term_dictionary(path: Path) -> list[TermEntry]:
     return [TermEntry.model_validate(t) for t in data.get("terms", [])]
 
 
-def _position(sent_text: str, base_line: int, base_col: int, idx: int) -> tuple[int, int]:
+def position_in_sentence(
+    sent_text: str, base_line: int, base_col: int, idx: int
+) -> tuple[int, int]:
     """문장 시작(base_line/base_col) 기준으로 문장 내 오프셋 idx의 줄·칸을 계산한다.
     sent_text가 원문 슬라이스와 동일하다는 lowering 불변식을 전제하므로 근사가 아니라 정확값이다."""
     newlines = sent_text.count("\n", 0, idx)
@@ -115,9 +117,9 @@ def build_symbol_table(
                     if not _is_eojeol_match(sent, idx, len(surface)):
                         continue
                     taken.append((abs_start, abs_end))
-                    sl, sc = _position(sent.text, sent.range.start_line,
+                    sl, sc = position_in_sentence(sent.text, sent.range.start_line,
                                        sent.range.start_col, idx)
-                    el, ec = _position(sent.text, sent.range.start_line,
+                    el, ec = position_in_sentence(sent.text, sent.range.start_line,
                                        sent.range.start_col, idx + len(surface))
                     table[canonical].append(TermOccurrence(
                         canonical=canonical, surface=surface, status=status,

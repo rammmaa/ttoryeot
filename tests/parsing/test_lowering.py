@@ -45,7 +45,7 @@ def test_reference_expression_extracted():
 
 def test_inline_code_masked_from_kiwi():
     """스펙 §5 — 인라인 코드는 Kiwi 분석에서 제외한다. 식별자가 명사구 후보로
-    유입되지 않아야 한다. 마스킹은 길이 보존 공백 치환이라 오프셋 불변식은 유지된다."""
+    유입되지 않아야 한다. 마스킹은 길이 보존 더미 치환이라 오프셋 불변식은 유지된다."""
     doc = lower_document("a.md", "`user_table` 이 테이블을 조인한다.\n", KIWI)
     phrases = [np.text for b in doc.blocks for s in b.sentences for np in s.noun_phrases]
     joined = " ".join(phrases)

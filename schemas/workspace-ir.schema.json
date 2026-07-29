@@ -62,6 +62,14 @@
           "title": "Blocks",
           "type": "array"
         },
+        "suppressions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Suppression"
+          },
+          "title": "Suppressions",
+          "type": "array"
+        },
         "parse_error": {
           "anyOf": [
             {
@@ -213,6 +221,37 @@
         "end_offset"
       ],
       "title": "SourceRange",
+      "type": "object"
+    },
+    "Suppression": {
+      "description": "문서에 적힌 진단 억제 지시 (`<!-- ttoryeot:disable [규칙…] -->`).\n\nprh의 `prh:disable`, Vale의 `vale off`에 대응한다. rules가 비면 전체 규칙.\nscope=\"file\"은 문서 전체, \"next_line\"은 지시 다음 줄에만 적용된다.",
+      "properties": {
+        "scope": {
+          "enum": [
+            "file",
+            "next_line"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "rules": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scope",
+        "line"
+      ],
+      "title": "Suppression",
       "type": "object"
     },
     "Token": {

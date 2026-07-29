@@ -3,9 +3,15 @@ from collections import defaultdict
 from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
-from ttoryeot.analysis.terms.dictionary import TermEntry, TermOccurrence, build_symbol_table
+from ttoryeot.analysis.terms.dictionary import (
+    TermEntry,
+    TermOccurrence,
+    build_symbol_table,
+    position_in_sentence,
+)
 from ttoryeot.analysis.terms.variants import is_variant_candidate_pair, normalize
 from ttoryeot.config import default_config
+from ttoryeot.parsing.lowering import INLINE_CODE
 from ttoryeot.diagnostics.models import Diagnostic
 from ttoryeot.ir.models import WorkspaceIR
 from ttoryeot.ir.source import SourceRange
@@ -50,6 +56,9 @@ def _variant_candidates(sent) -> list[tuple[str, SourceRange]]:
     base = sent.range.start_offset
     eojeol_start = 0
     text = sent.text
+    # 인라인 코드 안의 표기는 후보가 아니다. 명사구 경로는 lowering에서 이미
+    # 걸러지지만, 이 어절 경로는 원문에서 다시 긁으므로 여기서도 걸러야 한다.
+    code_spans = [(m.start(), m.end()) for m in INLINE_CODE.finditer(text)]
     while eojeol_start < len(text):
         end = eojeol_start
         while end < len(text) and not text[end].isspace():
@@ -74,17 +83,31 @@ def _variant_candidates(sent) -> list[tuple[str, SourceRange]]:
             if inner and inner[0].tag[0] == "V":
                 inner = []
             if inner:
-                stem_end = inner[-1].range.end_offset - base
-                surface = text[eojeol_start:stem_end].strip("\"'`.,·:;!?()[]{}<>")
-                if surface and any(ch.isalnum() for ch in surface):
+                # 마스킹된 코드 스팬은 공백이 없어 Kiwi가 여러 어절을 한 토큰으로
+                # 묶을 수 있다 — 어절 끝으로 잘라 후보가 어절을 넘지 않게 한다.
+                stem_end = min(inner[-1].range.end_offset - base, end)
+                raw = text[eojeol_start:stem_end]
+                surface = raw.strip("\"'`.,·:;!?()[]{}<>")
+                lead = len(raw) - len(raw.lstrip("\"'`.,·:;!?()[]{}<>"))
+                s_off, e_off = eojeol_start + lead, eojeol_start + lead + len(surface)
+                overlaps_code = any(
+                    a < e_off and s_off < b for a, b in code_spans
+                )
+                if surface and not overlaps_code and any(
+                    ch.isalnum() for ch in surface
+                ):
+                    sl, sc = position_in_sentence(
+                        text, sent.range.start_line, sent.range.start_col, s_off)
+                    el, ec = position_in_sentence(
+                        text, sent.range.start_line, sent.range.start_col, e_off)
                     out.append((
                         surface,
                         SourceRange(
                             file=sent.range.file,
-                            start_line=sent.range.start_line, start_col=1,
-                            end_line=sent.range.start_line, end_col=1,
-                            start_offset=base + eojeol_start,
-                            end_offset=base + stem_end,
+                            start_line=sl, start_col=sc,
+                            end_line=el, end_col=ec,
+                            start_offset=base + s_off,
+                            end_offset=base + e_off,
                         ),
                     ))
         eojeol_start = end + 1

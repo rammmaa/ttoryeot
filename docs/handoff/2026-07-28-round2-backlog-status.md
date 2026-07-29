@@ -77,7 +77,7 @@
 
 **반영 7건**: alias 상태 축(ISO 704/TBX) · 어절 경계 매칭 · 문법역 다단계(Centering) ·
 `min_top_score`(θ_α) · 인라인 억제 프라그마 · `--explain` 근거 분해 · 라틴 더미 마스킹(LTeX+).
-테스트 110→126.
+테스트 110→126 (이후 round-3 재조사 반영으로 162).
 
 **알아둘 사실**: SARIF는 이 생태계 **어디에도 없다**(Vale·textlint·LanguageTool·Acrolinx 전부) —
 우선순위에서 내렸다. 저장소 단위 용어 충돌 탐지 도구는 GitHub 검색 실측상 **부재**하고,
@@ -122,4 +122,4 @@
 ## 참고
 
 - 원격: `https://github.com/rammmaa/ttoryeot` (프라이빗, rammmaa). 새 머신은 `gh auth login` 후
-  clone → `uv sync` → `uv run pytest -q` (110 passed)
+  clone → `uv sync` → `uv run pytest -q` (162 passed)
