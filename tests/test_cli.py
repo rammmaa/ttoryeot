@@ -21,6 +21,14 @@ def test_lint_reports_fixture_diagnostics():
     assert "REF101" in res.output
 
 
+def test_lint_explain_shows_feature_breakdown():
+    plain = runner.invoke(app, ["lint", str(FIXTURE)])
+    assert "후보 점수 근거" not in plain.output
+    explained = runner.invoke(app, ["lint", str(FIXTURE), "--explain"])
+    assert "후보 점수 근거" in explained.output
+    assert "head_match" in explained.output
+
+
 def test_lint_config_reaches_analyzer(tmp_path):
     cfg = tmp_path / "cfg.yaml"
     cfg.write_text("reference:\n  threshold: 0.0\n", encoding="utf-8")

@@ -9,6 +9,7 @@ from ttoryeot.ir.models import (
     NounPhrase,
     ReferenceExpression,
     SentenceIR,
+    Suppression,
     Token,
 )
 from ttoryeot.ir.source import SourceRange
@@ -37,14 +38,50 @@ _DETERMINER_TAGS = {"MM", "MMD"}
 
 _INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
 
+_PRAGMA = re.compile(
+    r"<!--\s*ttoryeot:(disable|disable-next-line)((?:\s+[A-Za-z]+\d+)*)\s*-->"
+)
+
+
+def _parse_suppressions(source: str) -> list[Suppression]:
+    suppressions = []
+    for line_no, line in enumerate(source.split("\n"), start=1):
+        for m in _PRAGMA.finditer(line):
+            scope = "file" if m.group(1) == "disable" else "next_line"
+            suppressions.append(Suppression(
+                scope=scope, rules=m.group(2).split(), line=line_no,
+            ))
+    return suppressions
+
+
+# 더미는 라틴 문자다 — Kiwi가 통짜 SL(외국어) 명사 하나로 읽어 뒤따르는 조사가
+# 정상 부착된다(실측: 'X'*12 + '이' → SL + JKS). 한글 더미는 반복 형태소로 쪼개져
+# '이'가 서술격 조사(VCP)로 오분석된다. 인라인 코드가 대개 라틴 식별자라는 점과도 맞다.
+_DUMMY_CHAR = "X"
+
 
 def _mask_inline_code(text: str) -> str:
-    """인라인 코드 스팬을 같은 길이의 공백으로 바꿔 Kiwi 입력에서만 제외한다
+    """인라인 코드 스팬을 같은 길이의 **더미 명사**로 바꿔 Kiwi 입력에서만 제외한다
     (스펙 §5). 길이가 보존되므로 토큰 오프셋은 원문 기준 그대로이고, 문장 텍스트는
     여전히 원문 슬라이스에서 오므로 코드가 포함된 원문이 유지된다.
+
+    공백으로 지우지 않는 이유는 LTeX+가 같은 문제에 쓰는 근거와 같다 — 코드는 흔히
+    문장 구조의 일부(주어·목적어)라서 지우면 뒤따르는 조사가 고아가 되고 문법역
+    판정이 어긋난다. 더미 명사로 채우면 구조가 살아 REF101 후보 랭킹이 안정된다.
+    더미는 원문에 없는 문자열이 아니므로 명사구로 잡힐 수 있으나, 코드 스팬 범위의
+    명사구는 호출부에서 제외된다.
+
     알려진 미탐(항상 길이 안전): 3중 백틱 인라인 스팬(```x```)은 백틱 하나가 남고,
     소프트 줄바꿈을 걸친 스팬(`foo\\nbar`)은 마스킹되지 않는다."""
-    return _INLINE_CODE.sub(lambda m: " " * len(m.group()), text)
+
+    def dummy(m: re.Match) -> str:
+        return _DUMMY_CHAR * len(m.group())
+
+    return _INLINE_CODE.sub(dummy, text)
+
+
+def _code_spans(text: str) -> list[tuple[int, int]]:
+    return [(m.start(), m.end()) for m in _INLINE_CODE.finditer(text)]
 
 
 def to_range(file: str, source: str, start: int, end: int) -> SourceRange:
@@ -230,6 +267,17 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
             continue
 
         sentences = []
+        # 더미로 채운 코드 스팬은 명사구 후보에서 제외한다 (원문 절대 오프셋 기준)
+        code_spans = [
+            (raw.start_offset + s, raw.start_offset + e)
+            for s, e in _code_spans(raw.text)
+        ]
+
+        def in_code(rng) -> bool:
+            return any(
+                a < rng.end_offset and rng.start_offset < b for a, b in code_spans
+            )
+
         for sent in kiwi.split_into_sents(_mask_inline_code(raw.text), return_tokens=True):
             s_start = raw.start_offset + sent.start
             s_end = raw.start_offset + sent.end
@@ -247,7 +295,9 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
                 for t in sent.tokens
             ]
             runs = _noun_runs(source, tokens)
-            phrases = _noun_phrases(path, source, runs)
+            phrases = [
+                p for p in _noun_phrases(path, source, runs) if not in_code(p.range)
+            ]
             sentences.append(
                 SentenceIR(
                     text=source[s_start:s_end],
@@ -264,4 +314,5 @@ def lower_document(path: str, source: str, kiwi: Kiwi) -> DocumentIR:
         path=path,
         content_hash=hashlib.sha256(source.encode()).hexdigest()[:16],
         blocks=blocks_ir,
+        suppressions=_parse_suppressions(source),
     )

@@ -9,6 +9,16 @@ from ttoryeot.ir.models import WorkspaceIR
 DEFAULTS = default_config()["reference"]
 
 
+def _explain(top: list) -> str:
+    """상위 후보의 자질별 원점수를 근거 문자열로 분해한다 (Gleich 외 2010 —
+    왜 모호한지를 설명해 작성자를 교육한다)."""
+    parts = []
+    for c in top:
+        feats = " ".join(f"{k}={v:g}" for k, v in c.features.items())
+        parts.append(f"{c.phrase.text}({feats})")
+    return "후보 점수 근거: " + " · ".join(parts)
+
+
 class ReferenceAnalyzer:
     rule_ids = ("REF101",)
 
@@ -59,5 +69,6 @@ class ReferenceAnalyzer:
                                     Candidate(text=c.phrase.text, score=c.score)
                                     for c in unique[:3]
                                 ],
+                                evidence=_explain(unique[:2]),
                             )
                     window.append(sent)

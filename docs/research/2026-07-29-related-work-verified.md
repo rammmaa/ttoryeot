@@ -288,9 +288,85 @@ severity, 근거 link.
 - **국립국어원 다듬은 말** — `deprecated → preferred` 쌍의 완성형(일괄 다운로드 없음)
 - **TTA 정보통신용어사전** — IT 도메인 정합성 최상이나 API/덤프 없음
 
-## 4. 문서 린터 생태계
+## 4. 문서 린터 생태계 — 저장소 스코프는 아키텍처가 금지한다
 
-(§4는 별도 조사 진행 중 — 완료 시 이 절을 채운다.)
+소스 코드를 직접 읽어 스코프 경계를 검증했다.
+
+| 도구 | 분석 단위 | 용어 일관성 | 지시 모호성 |
+|---|---|---|---|
+| **Vale** (Go) | **파일** — `sizedwaitgroup`으로 파일마다 goroutine, 상태가 `core.File`에 갇힘 | `consistency`(사전 선언 쌍, 파일 내, 순서 의존) | 없음 |
+| **textlint** (JS) | **단일 문서** — 커널 API가 `lintText(text)` | `no-synonyms`(Sudachi 동의어), `prh` | 없음 |
+| **RedPen** (Java) | 문장/섹션/**문서** | `JapaneseExpressionVariationValidator` — **읽기 정규화 기반 자동 변이 그룹핑** | 없음 |
+| **LanguageTool** (Java) | 문장 / **텍스트**(`TextLevelRule`) | `AbstractWordCoherencyRule`(최초 등장 우선), **`ConsistencyPatternRuleTransformer`(다수결)** | 없음 (8.2MB 룰에 anaphora/referential grep 0건) |
+| **Acrolinx** (상용) | **코퍼스**(batch) | ISO 12620 상태 + term harvesting | 통사적 맨-지시사 검사 1건 |
+| proselint / write-good / alex | 파일 / 단락 | 하드코딩 14쌍 / 없음 / 없음 | 없음 |
+
+**핵심 사실 세 가지:**
+
+1. **저장소 단위 용어 충돌 탐지는 "드문" 게 아니라 사실상 부재하다.** GitHub 검색 실측:
+   `glossary validation docs` **0건**, `korean documentation style checker` **0건**,
+   `textlint korean` **0건**. 가장 가까운 OSS가 `textlint-rule-terminology`(★55, 파일 단위).
+   저장소 전역 그래프를 만드는 흔한 도구는 **링크 체커뿐**이다 — 생태계는 "파일 간 분석이
+   필요하다"를 이미 인정했고(링크), 대상을 용어로 확장하지 않았을 뿐이다.
+2. **업계 표준 스타일 패키지는 `consistency`를 쓰지 않는다.** `errata-ai/Microsoft` 40룰과
+   `errata-ai/Google` 31룰 모두 **consistency 0건**이고, 양쪽 `Passive.yml`은 176개 과거분사
+   하드코딩 리스트가 **바이트 단위 동일**하다. 즉 "가장 권위 있는 기술문서 스타일 가이드도
+   기계화하면 정규식 뱅크가 된다" — 또렷의 베이스라인 비교(F1 0.750 vs 정규식·치환 0.286~0.333)가
+   겨루는 상대가 정확히 이 산업 표준 수준이다.
+3. **SARIF는 테이블 스테이크스가 아니다.** Vale(v3 tarball 28MB grep 0건)·textlint·proselint·
+   alex·LanguageTool·Acrolinx·Grammarly **어디에도 없다.** 산문 린팅 생태계가 채택하지 않은
+   포맷이므로 **우선순위에서 내려도 된다** (초기 가정과 다른 실측 결과).
+
+**한국어 지원 실태**: Vale은 `internal/core/file.go`가 `lang := "en"`을 **하드코딩**하고 스펠링
+필터 `[^a-zA-Z_']`가 **한글 토큰을 조용히 버린다**. RedPen은 `ko`를 지원 언어 목록에 넣어두고도
+토크나이저가 `WhiteSpaceTokenizer`뿐이라 위 표의 Validator가 **한국어에서 하나도 동작하지
+않는다**(전부 `[ja]`). 일본어가 kuromoji/Sudachi 위에 15년간 룰 저장소 36개와 기업 프리셋을
+쌓는 동안 **한국어에는 그 층이 없다.**
+
+### 통제언어 — REF101의 규범적 근거
+
+**ASD-STE100 Issue 9**(항공우주 기술문서 국제 규격, 434쪽 원문 확인)는 또렷의 규칙과 직접
+대응하는 조항을 갖는다:
+
+- **Rule 1.11** "Do not use different technical nouns for the same item" = **TERM101**
+- **Rule 9.4** "always use a consistent style" = **저장소 수준 일관성**
+- **Rule 2.1** 복합명사 3단어 이하 — 근거를 명시한다: *"When the connections between words are
+  not clear, ambiguity occurs"* + *"in some languages, the main noun comes first"*
+- **GR-3** *"If a pronoun can refer to one or more nouns in a text, it can cause ambiguity…
+  replace the pronoun with the word that it refers to."* / **GR-4** 지시사 'this'가 둘 이상을
+  가리킬 수 있으면 문맥을 다시 제시 → **REF101의 규범적 근거**
+
+**결정적 공백**: 커버리지를 공개한 STE 체커 벤더 둘 다 **GR-3(대명사 모호성)을 미구현**이고,
+**Congree는 Rule 9.4를 "기계 검사 불가"로 분류**한다(*"does not pertain to the text composition
+process. Instead, it includes requirements for terminology work"*). 또렷은 정확히 이 미구현
+지대에 있다.
+
+**파서 기반 통제언어의 교훈** (Boeing BSEC, Caterpillar CTE, KANT, ACE):
+
+- **어휘 통제가 문법 통제를 4:1로 이긴다.** KANT의 ablation(COLING-94): 일반 어휘+문법 =
+  문장당 파스 **27.0**, **어휘만 제약 → 1.7**, 문법만 제약 → 8.4.
+  → **`terms.yaml`·심벌 테이블 투자가 REF101 규칙 정교화보다 효율적일 수 있다**는,
+  또렷이 실험으로 검증 가능한 가설
+- **다의어는 금지가 아니라 관리 대상.** Caterpillar는 1,000개 이상 용어가 진짜로 복수 의미를
+  요구함을 발견하고 **subdomain code**로 풀었다 → TERM102에 **도메인 필드가 필수**라는 직접 근거
+- **두 실패 모드**: Boeing의 "weird parses"(관대한 문법은 늘 *어떤* 파스를 찾아 no-parse 신호를
+  죽인다), KANT의 **silent repair**(합법 해석이 하나면 그것으로 통과시켜 찾으려던 모호성을 은폐).
+  → **또렷이 후보와 점수를 모두 노출하고 하나로 확정하지 않는 것이 이 둘에 대한 올바른 방어다**
+- **주장 범위**: BSEC은 350룰 GPSG 완전 모호성 파서로도 **precision 79%**였다.
+  "선행사를 확정한다"가 아니라 "확정이 어려운 지점을 표시한다"가 문헌적으로 정당한 선이다
+- Sowa(CLCE): *"Although computers are not as good as people at resolving ambiguities,
+  **they are much better than people at detecting ambiguities**."*
+
+**미 연방 plain language 지침**(아카이브 확인)도 독립적으로 같은 규칙을 갖는다 —
+`use-the-same-terms-consistently`(*"Using a different term may cause the reader to wonder if
+you're referring to the same group"*), `avoid-noun-strings`(**명사 3개 초과 금지**),
+`place-words-carefully`(*"Sloppy word placement can cause ambiguity"*).
+→ **명사 나열 3개 상한은 STE와 미 연방 지침 양쪽에서 독립적으로 나온다 — 신규 룰 근거가 이중이다.**
+
+**주의**: 영어 가독성 공식(Flesch-Kincaid 등)은 *단어당 음절수*·*문장당 단어수*의 함수인데
+한국어는 두 분모가 모두 부정의다(어절 경계는 띄어쓰기 관행, 조사·어미 교착, 음절 수와 난이도
+무상관 — 2음절 한자어가 4음절 고유어보다 어렵다). **이식하지 말 것.** `textstat` 지원 언어에도
+CJK가 없다.
 
 ## 5. 포지셔닝 교정 — 무엇을 주장할 수 있고 무엇을 접어야 하나
 
@@ -312,8 +388,11 @@ severity, 근거 link.
 2. **결정론적·비ML 구현** — nocuity 판정은 Chantree 이래 전부 ML(Naive Bayes → SpanBERT)이었다.
    어휘 전용 결정론 도구 SREE는 **후보 랭킹을 아예 하지 않는다**. "랭킹은 하되 ML은 안 쓴다"는
    조합은 확인된 선행연구에 없다
-3. **저장소(cross-document) 단위** — 선행 도구는 전부 단일 문서 단위다. TERM 심벌 테이블과 REF101을
-   같은 IR 위에 얹은 구성은 확인 범위에 선례가 없다
+3. **저장소(cross-document) 단위** — 선행 도구는 전부 단일 문서 단위이며 **아키텍처가 그것을
+   금지한다**(§4). Acrolinx만이 코퍼스 집행을 하는데 상용·비공개·compile-and-deploy이고
+   인라인 억제조차 없다. TERM 심벌 테이블과 REF101을 같은 IR 위에 얹은 구성은 선례가 없다
+3-1. **발견과 집행의 통합** — TERM103(발견)+TERM101/104(집행)은 산업에서 분리된 두 제품
+   (Fodina TermCatch = 오프라인 발견, Acrolinx = 온라인 집행)을 **하나의 CI 도구로 합친 것**이다
 4. **한국어 기술문서 평가 데이터** — ReqEval(200문장)에 대응하는 한국어 자원이 없다
 5. **TERM102(정의 충돌)** — lint 규칙 구현 선례가 없고 학술적으로도 2025년에야 정식화
 
@@ -345,6 +424,18 @@ severity, 근거 link.
 | 어절 경계 매칭 | Kiwi 복합명사 분해로 '세트'가 '데이터세트' 안에서 매칭되던 오탐 |
 | 문법역 다단계(주격 1.0 > 목적격 0.7 > 기타 조사 0.5 > 무조사 0.3) | Centering의 SUBJECT>OBJECT>OTHER, Lappin & Leass RAP 가중치 |
 | `min_top_score`(θ_α) | Ezzini 외 (ICSE 2022) — 격차만 보면 후보가 전부 약할 때도 침묵하지 않는 문제 |
+| 인라인 억제 프라그마 | prh `prh:disable` · Vale `vale off` · alex(노드 스코프). **생태계 전부 갖췄고 또렷만 없던 CI 도입 차단 요인** |
+| 진단 근거 분해(`--explain`) | Gleich 외 (REFSQ 2010) — 결정론적 가중합이라 분해가 자명한 것이 ML 대비 우위 |
+| 인라인 코드 → 라틴 더미 치환 | LTeX+ `dummy`. 공백으로 지우면 뒤따르는 조사가 고아가 되어 문법역이 어긋난다 |
+
+**외부 코퍼스 영향** (반영 전 → 후, REF101 발화 수):
+fe-news 199→**195** · ko.react.dev 1,045→**984** · k8s ko 2,105→**2,120**.
+시드 F1 0.750·픽스처 golden 6세트 불변.
+
+k8s만 증가한 것은 회귀가 아니라 **파싱 충실도 개선의 귀결**로 해석한다 — 코드 밀집
+레퍼런스 문서에서 종전에는 코드를 공백으로 지워 뒤 조사가 오분석되며 지시어 자체를
+놓치던 문장들이, 이제 구조가 살아 정상적으로 후보 랭킹을 타기 때문이다. (다만 이 해석은
+표본 판정으로 확인하지 않았으므로 round-4의 재판정 대상이다.)
 
 ## 7. 아직 반영하지 않은 제안 (round-4 백로그)
 
@@ -383,6 +474,33 @@ severity, 근거 link.
 **알려진 한계 명시 (small)** — 영형 조응 미지원(한국어 구어 대명사의 약 57%가 영형 주어),
 한국어 coref 상한 F1 66.9, `suppress_heads`가 배제하는 것은 모호성이 아니라 **generality**임을
 Berry & Kamsties로 정당화
+
+**§4 조사에서 나온 추가 반영 후보 (우선순위순)**
+
+1. **TERM101을 다수결 정본 제안으로 (medium)** — LanguageTool `ConsistencyPatternRuleTransformer`.
+   현재 또렷은 "다른 문서의 표기와 불일치"로 **양쪽을 대칭 보고**한다. 저장소 전역 빈도로
+   **최빈 표기를 정본 제안**하면 (a) 진단 수 급감 (b) 수정 방향 명확 (c) `terms.yaml`에 canonical이
+   없어도 동작. 동점 시 전량 플래그. **또렷은 저장소 스코프라 표본이 커서 LanguageTool보다 유리하다**
+2. **명사 연쇄 모호성 규칙 AMB101 (medium, 신규 룰)** — STE Rule 2.1 + 미 연방
+   `avoid-noun-strings`가 **독립적으로 3개 상한**을 규정. 한국어는 핵어 후치 + 조사 생략으로
+   더 심하고("주문 데이터 파이프라인 배치 처리 설정"), Kiwi 명사구 IR이 이미 있다.
+   **근거가 이중이고 비용이 낮은 최우선 신규 룰**
+3. **인라인 코드를 공백이 아니라 더미 명사로 (small)** — LTeX+의 `dummy` 치환.
+   삭제하면 문장 구조가 깨지고 남기면 오탐이 나는데, 더미 명사면 **구조가 살아 REF101 후보
+   랭킹이 안정된다**. 현재 또렷은 공백 치환이라 구조가 깨지는 쪽
+4. **사전 없는 표기 변이 발견 (medium)** — RedPen `JapaneseExpressionVariationValidator`의
+   읽기 정규화 + Levenshtein(`min_ratio 0.3`, `max_ignore_len 3`). 한국어 외래어 변이는
+   자소 분해 후 편집거리가 작다. **TERM100/101이 사전 선언에 의존하는 구조적 공백을 메운다**
+5. **기계 판독 lint 출력 (small)** — 현재 JSON은 벤치에만 있다. Vale(JSON+템플릿→reviewdog),
+   textlint(포매터 11종) 대비 결손이며 **reviewdog/GitHub Annotations 연동이 도입 경로**.
+   단 **SARIF는 불필요**(생태계 어디에도 없음)
+6. **진단 모델을 다중 스팬 + 안정 해시로 (medium)** — Acrolinx. TERM101("이 문서의 X ↔ 저 문서의
+   Y")과 REF101(지시어 + 후보들)은 본질적으로 **비연속 다중 스팬**이다. 안정 해시는 baseline
+   워크플로("기존 이슈는 눈감고 신규만 차단")를 공짜로 만든다
+7. **사전에 `specs:` 내장 테스트 (small)** — prh. `terms.yaml` 항목에 테스트케이스를 넣으면
+   사전 회귀를 벤치 하네스로 자동 검증할 수 있다
+8. **어휘 우선 가설 검증 (실험)** — KANT ablation(어휘만 27.0→1.7 vs 문법만 8.4)에 근거해,
+   **사전 확충 vs REF101 규칙 정교화** 중 어느 쪽이 정밀도를 더 올리는지 스윕으로 비교
 
 ## 조사 한계
 

@@ -17,6 +17,8 @@ OBJECT_PARTICLES = {"을", "를"}
 class ScoredCandidate(BaseModel):
     phrase: NounPhrase
     score: float
+    # 자질별 원점수 (가중 전) — 진단 근거 분해용. 결정론적 가중합이라 분해가 자명하다.
+    features: dict[str, float] = {}
 
 
 def _role_score(phrase: NounPhrase, sent: SentenceIR) -> float:
@@ -49,8 +51,12 @@ def rank_candidates(
             role = _role_score(phrase, sent)
             head_match = 1.0 if (ref.head == phrase.head or ref.head in phrase.text) else 0.0
             recency = 1.0 if dist_idx == 0 else 0.0
-            score = (w["distance"] * distance + w["role"] * role
-                     + w["head_match"] * head_match + w["recency"] * recency)
-            scored.append(ScoredCandidate(phrase=phrase, score=round(score, 4)))
+            features = {"distance": distance, "role": role,
+                        "head_match": head_match, "recency": recency}
+            score = sum(w[k] * v for k, v in features.items())
+            scored.append(ScoredCandidate(
+                phrase=phrase, score=round(score, 4),
+                features={k: round(v, 4) for k, v in features.items()},
+            ))
     scored.sort(key=lambda c: -c.score)
     return scored

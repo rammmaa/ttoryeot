@@ -114,6 +114,18 @@ def test_min_top_score_suppresses_weak_candidate_sets(tmp_path):
     assert run(ws, {"reference": {"min_top_score": 0.99}}) == []
 
 
+def test_diagnostic_explains_which_features_closed_the_gap(tmp_path):
+    """Gleich et al.(REFSQ 2010)의 요구조건 — 왜 모호한지를 설명해 작성자를 교육한다.
+    결정론적 가중합이라 자질 기여 분해가 자명한 것이 ML 대비 실질 우위다."""
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    diags = run(ws)
+    assert diags[0].evidence is not None
+    # 상위 두 후보의 자질별 점수가 근거에 드러나야 한다
+    for feature in ("distance", "role", "head_match", "recency"):
+        assert feature in diags[0].evidence
+
+
 def test_threshold_configurable(tmp_path):
     ws = make_ws(tmp_path,
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")

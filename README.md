@@ -31,8 +31,8 @@ $ ttoryeot lint docs/ --terms terms.yaml
 docs/deploy.md:3 TERM101 '데이터셋'은(는) 다른 문서의 '데이터세트' 표기와 불일치합니다.
 docs/pipeline.md:3 TERM102 '데이터세트'의 정의가 다른 문서의 정의와 충돌합니다.
 docs/pipeline.md:7 REF101 '해당 데이터'의 지시 대상이 불명확합니다.
-    후보 0.65  데이터세트
-    후보 0.55  주문 테이블
+    후보 0.68  데이터세트
+    후보 0.51  주문 테이블
 ```
 
 ## 구조
@@ -55,14 +55,35 @@ Markdown 저장소
   [측정 리포트](docs/research/2026-07-28-external-corpus-fp.md) 참조 — 가중치·임계값은
   `src/ttoryeot/config/default.yaml`에서 튜닝 가능(`lint --config`)
 
+## 오탐 억제
+
+문서 안에서 진단을 끌 수 있다 (규칙 이름을 생략하면 전체 규칙):
+
+```markdown
+<!-- ttoryeot:disable TERM104 -->            문서 전체
+<!-- ttoryeot:disable-next-line REF101 -->   다음 줄만
+```
+
 ## 시작하기
 
 ```bash
 uv sync
 uv run pytest -q
 uv run ttoryeot lint corpus/fixtures/data-platform --terms corpus/fixtures/data-platform/terms.yaml
+uv run ttoryeot lint <문서루트> --terms terms.yaml --explain   # 진단 근거(자질별 점수)까지
 uv run ttoryeot bench run --data benchmark/data/sample-sentences.jsonl --engine ttoryeot
 uv run ttoryeot bench report
+```
+
+용어 사전(`terms.yaml`)의 별칭은 표기 상태를 가질 수 있다 — ISO 704·TBX의
+`preferred / admitted / deprecated` 축에 대응한다:
+
+```yaml
+terms:
+  - canonical: 데이터세트
+    aliases:
+      - 데이터셋                                    # 문자열 = deprecated
+      - {surface: 데이터 세트, status: admitted}    # 혼용 탐지는 하되 비권장 경고는 안 함
 ```
 
 ## 문서
