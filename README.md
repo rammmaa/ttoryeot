@@ -100,6 +100,7 @@ terms:
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
 - [관련 연구 (검증판) · 선행연구 대비 위치](docs/research/2026-07-29-related-work-verified.md)
+- [REF101 평가 프로토콜 (판정 분포·τ 스윕·F2)](docs/research/2026-07-29-ref101-evaluation-protocol.md)
 - [REF101 튜닝 챕터](docs/research/2026-07-28-ref101-tuning.md)
 - [잔존 발화 재판정·억제 비용·장르 일반화](docs/research/2026-07-28-round3-residual-judgment.md)
 - [외부 코퍼스 REF101 발화율 측정](docs/research/2026-07-28-external-corpus-fp.md)
