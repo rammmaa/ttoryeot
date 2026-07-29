@@ -96,7 +96,8 @@ terms:
 
 ## 문서
 
-- **[세션 요약 — 무엇이 구현됐나 (여기부터)](docs/handoff/2026-07-28-session-summary.md)**
+- **[아키텍처·규칙 레퍼런스 — 어떻게 작동하나](docs/architecture.md)**
+- [세션 요약 — 무엇이 구현됐나](docs/handoff/2026-07-28-session-summary.md)
 - [진행 상태·백로그 (핸드오프)](docs/handoff/2026-07-28-round2-backlog-status.md)
 - [1차 정량 실험 (조사표 벤치마크)](docs/research/2026-07-28-round1-quantitative.md)
 - [관련 연구 (검증판) · 선행연구 대비 위치](docs/research/2026-07-29-related-work-verified.md)
