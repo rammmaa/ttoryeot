@@ -53,6 +53,18 @@ def test_inline_code_masked_from_kiwi():
     assert "테이블" in phrases  # 코드 밖 명사는 유지
 
 
+def test_inline_code_masked_as_dummy_noun_preserves_structure():
+    """LTeX+의 dummy 치환 — 코드를 공백으로 지우면 문장 구조가 깨져 뒤 명사구의
+    문법역 판정이 어긋난다. 같은 길이의 더미 명사로 채우면 구조가 살아 후보 랭킹이
+    안정된다 (길이는 여전히 보존되므로 오프셋 불변식은 그대로)."""
+    doc = lower_document("a.md", "`user_table`이 주문 테이블을 참조합니다.\n", KIWI)
+    sent = doc.blocks[0].sentences[0]
+    # 코드 뒤 주격 조사 '이'가 조사로 인식되어야 한다 (공백 뒤에 고아로 남으면 안 됨)
+    assert any(t.form == "이" and t.tag.startswith("J") for t in sent.tokens)
+    phrases = " ".join(np.text for np in sent.noun_phrases)
+    assert "user_table" not in phrases
+
+
 def test_dot_inside_inline_code_does_not_split_sentence():
     doc = lower_document("a.md", "실행은 `run(). stop()` 다음에 한다.\n", KIWI)
     sents = [s for b in doc.blocks for s in b.sentences]

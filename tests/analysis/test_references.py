@@ -88,6 +88,62 @@ def test_suppressed_head_hides_genuine_ambiguity_known_limitation(tmp_path):
     assert [d.rule for d in diags] == ["REF101"]
 
 
+def test_role_score_is_graded_by_case_particle():
+    """Centering(SUBJECT > OBJECT > OTHER)과 Lappin & Leass(subject 80 / accusative 50 /
+    oblique 40)의 다단계 문법역. 한국어는 조사로 역이 표면에 드러나 영어보다 싸게
+    구현된다 — 기존 1.0/0.3 이진에서 승격."""
+    from ttoryeot.analysis.references.candidates import ROLE_SCORES
+
+    assert ROLE_SCORES["topic"] > ROLE_SCORES["subject"] > ROLE_SCORES["object"]
+    assert ROLE_SCORES["object"] > ROLE_SCORES["oblique"] > ROLE_SCORES["none"]
+
+
+def test_topic_particle_outranks_nominative():
+    """한국어 고유 신호 — 주제 표지 은/는(JX)은 주격 이/가(JKS)와 다른 형태소이고,
+    담화 현저성이 더 높다. 영어 Centering이 주제를 '추론'해야 하는 것과 달리 한국어는
+    표면에 찍혀 있다 (일본어 centering의 TOPIC > SUBJECT 위계와 같은 계열).
+    이 둘을 뭉치면 한국어가 공짜로 주는 신호를 버리는 셈이다."""
+    from ttoryeot.analysis.references.candidates import _role_score
+    from ttoryeot.parsing.lowering import lower_document
+    from ttoryeot.parsing.workspace import get_kiwi
+
+    def role_of(text: str) -> float:
+        doc = lower_document("a.md", text + "\n", get_kiwi())
+        sent = doc.blocks[0].sentences[0]
+        return _role_score(sent.noun_phrases[0], sent)
+
+    assert role_of("주문 테이블은 크다.") > role_of("주문 테이블이 크다.")
+    assert role_of("주문 테이블이 크다.") > role_of("주문 테이블을 만든다.")
+
+
+def test_subject_candidate_outranks_object_candidate(tmp_path):
+    ws = make_ws(tmp_path,
+        "사용자 테이블이 주문 테이블을 참조합니다.\n\n해당 테이블을 조회합니다.\n")
+    diags = run(ws, {"reference": {"threshold": 1.0}})  # 항상 발화시켜 순위를 본다
+    assert diags and [c.text for c in diags[0].candidates][0] == "사용자 테이블"
+
+
+def test_min_top_score_suppresses_weak_candidate_sets(tmp_path):
+    """Ezzini et al.(ICSE 2022)의 θ_α — 격차만 보면 후보가 전부 약할 때도 침묵한다.
+    1위 점수 자체가 낮으면 근거가 빈약하므로 발화하지 않는다."""
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    assert [d.rule for d in run(ws)] == ["REF101"]
+    assert run(ws, {"reference": {"min_top_score": 0.99}}) == []
+
+
+def test_diagnostic_explains_which_features_closed_the_gap(tmp_path):
+    """Gleich et al.(REFSQ 2010)의 요구조건 — 왜 모호한지를 설명해 작성자를 교육한다.
+    결정론적 가중합이라 자질 기여 분해가 자명한 것이 ML 대비 실질 우위다."""
+    ws = make_ws(tmp_path,
+        "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
+    diags = run(ws)
+    assert diags[0].evidence is not None
+    # 상위 두 후보의 자질별 점수가 근거에 드러나야 한다
+    for feature in ("distance", "role", "head_match", "recency"):
+        assert feature in diags[0].evidence
+
+
 def test_threshold_configurable(tmp_path):
     ws = make_ws(tmp_path,
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")

@@ -31,4 +31,21 @@ def run_workspace(
         analyzers.insert(0, TermAnalyzer(load_term_dictionary(terms_path)))
     for analyzer in analyzers:
         diags.extend(analyzer.analyze(ws, ctx))
-    return diags
+    return _apply_suppressions(ws, diags)
+
+
+def _apply_suppressions(ws, diags: list[Diagnostic]) -> list[Diagnostic]:
+    by_path = {doc.path: doc for doc in ws.documents}
+
+    def suppressed(diag: Diagnostic) -> bool:
+        doc = by_path.get(diag.range.file)
+        for s in (doc.suppressions if doc else []):
+            if s.rules and diag.rule not in s.rules:
+                continue
+            if s.scope == "file":
+                return True
+            if s.scope == "next_line" and diag.range.start_line == s.line + 1:
+                return True
+        return False
+
+    return [d for d in diags if not suppressed(d)]

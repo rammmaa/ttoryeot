@@ -70,6 +70,7 @@ def lint(
     root: Path,
     terms: Path | None = typer.Option(None, help="용어 사전 YAML"),
     config: Path | None = typer.Option(None, help="설정 YAML (default.yaml 위에 덮어씀)"),
+    explain: bool = typer.Option(False, help="진단 근거(자질별 점수 등)를 함께 출력"),
 ) -> None:
     from ttoryeot.config import ConfigError, load_config
     from ttoryeot.runner import run_workspace
@@ -91,5 +92,7 @@ def lint(
         typer.echo(f"{d.range.file}:{d.range.start_line} {d.rule} {d.message}")
         for c in d.candidates:
             typer.echo(f"    후보 {c.score:.2f}  {c.text}")
+        if explain and d.evidence:
+            typer.echo(f"    {d.evidence}")
     if diags:
         raise typer.Exit(code=1)

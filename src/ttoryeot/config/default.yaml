@@ -11,10 +11,30 @@ terms:
   suggest_unknown: false
   unknown_min_count: 3
   unknown_min_docs: 2
+  # true면 사전에 없는 표기 변이 후보를 TERM105 info로 제안한다 — 자소 편집거리
+  # 기반이라 사전 선언 없이도 '오너십/오너쉽', '데이터 세트/데이터세트'를 찾는다.
+  # 실측(2026-07-29): 실제 변이쌍 0.00~0.22 vs 서로 다른 용어 0.50~0.83.
+  suggest_variants: false
+  variant_max_ratio: 0.25
+  variant_min_count: 2
+  # 음절 하한이 실전 노이즈의 최대 원인을 잡는다 — 2음절 한자어는 자소 1개만 달라도
+  # 전혀 다른 단어('가지/가치', '인식/일식'). 표기 변이는 외래어에 몰려 3음절 이상이다.
+  variant_min_syllables: 3
+  variant_max_distance: 2
+  # 소수 표기의 빈도 비율 상한. 표기 변이는 소수 이형태이고, 대등한 빈도로 공존하면
+  # 서로 다른 어휘일 가능성이 높다('온라인'/'오프라인', '사이드'/'사이트').
+  variant_minority_ratio: 0.1
+  variant_minority_max_count: 3
 
 reference:
   window: 5
+  # 유해 모호성(nocuous ambiguity) 임계 — 1·2위 후보의 점수차가 이 값 미만이면
+  # 경고한다. Lappin & Leass(1994)의 salience difference threshold, Yang et al.(2011)의
+  # margin 조건, Ezzini et al.(ICSE 2022)의 θ_δ=0.1과 같은 계열의 연산이다.
   threshold: 0.2
+  # 절대 확신도 하한(Ezzini et al.의 θ_α 대응). 1위 점수가 이 값 미만이면 후보
+  # 집합 자체가 빈약하므로 격차와 무관하게 침묵한다.
+  min_top_score: 0.0
   # 2026-07-28 튜닝 스윕으로 확정 (docs/research/2026-07-28-ref101-tuning.md):
   # head_match 0.45는 '자명한 1위'(사람에겐 명백한 선행사) 오탐을 줄이면서
   # 시드·픽스처 가드를 전부 통과한다. threshold는 0.15부터 시드 recall이 죽는

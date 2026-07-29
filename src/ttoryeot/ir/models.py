@@ -41,10 +41,23 @@ class Block(BaseModel):
     sentences: list[SentenceIR] = []
 
 
+class Suppression(BaseModel):
+    """문서에 적힌 진단 억제 지시 (`<!-- ttoryeot:disable [규칙…] -->`).
+
+    prh의 `prh:disable`, Vale의 `vale off`에 대응한다. rules가 비면 전체 규칙.
+    scope="file"은 문서 전체, "next_line"은 지시 다음 줄에만 적용된다.
+    """
+
+    scope: Literal["file", "next_line"]
+    rules: list[str] = []
+    line: int
+
+
 class DocumentIR(BaseModel):
     path: str
     content_hash: str
     blocks: list[Block] = []
+    suppressions: list[Suppression] = []
     parse_error: str | None = None
 
 

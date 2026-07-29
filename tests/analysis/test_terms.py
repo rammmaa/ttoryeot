@@ -16,8 +16,8 @@ def make_ws(tmp_path: Path, files: dict[str, str]):
     return load_workspace(tmp_path)
 
 
-def run(ws):
-    return list(TermAnalyzer(ENTRIES).analyze(ws, AnalysisContext()))
+def run(ws, entries=None):
+    return list(TermAnalyzer(entries or ENTRIES).analyze(ws, AnalysisContext()))
 
 
 def test_term100_mixed_in_one_document(tmp_path):
@@ -213,6 +213,55 @@ def test_term103_respects_dictionary_thresholds_and_tags(tmp_path):
     })
     assert [d for d in TermAnalyzer(ENTRIES).analyze(ws, cfg)
             if d.rule == "TERM103"] == []
+
+
+ADMITTED = [TermEntry(canonical="데이터세트", aliases=[
+    {"surface": "데이터셋", "status": "deprecated"},
+    {"surface": "데이터 세트", "status": "admitted"},
+])]
+
+
+def enforce(ws, entries):
+    return list(TermAnalyzer(entries).analyze(
+        ws, AnalysisContext(config={"terms": {"enforce_canonical": True}})))
+
+
+def test_admitted_alias_is_not_flagged_as_nonpreferred(tmp_path):
+    """ISO 704·TBX administrativeStatus·SKOS altLabel/hiddenLabel·Acrolinx가 공통으로
+    갖는 축: '써도 되는 이표기(admitted)'와 '쓰면 안 되는 표기(deprecated)'는 다르다.
+    admitted를 TERM104로 경고하면 사전에 이표기를 적는 순간 오탐이 된다."""
+    ws = make_ws(tmp_path, {"a.md": "데이터 세트를 만듭니다.\n"})
+    assert [d.rule for d in enforce(ws, ADMITTED)] == []
+
+
+def test_deprecated_alias_is_flagged(tmp_path):
+    ws = make_ws(tmp_path, {"a.md": "데이터셋을 만듭니다.\n"})
+    assert [d.rule for d in enforce(ws, ADMITTED)] == ["TERM104"]
+
+
+def test_string_alias_defaults_to_deprecated(tmp_path):
+    """하위 호환 — 문자열 alias는 기존 동작(deprecated)을 유지한다."""
+    ws = make_ws(tmp_path, {"a.md": "데이터셋을 만듭니다.\n"})
+    assert [d.rule for d in enforce(ws, ENTRIES)] == ["TERM104"]
+
+
+def test_admitted_alias_still_counts_as_notation_mixing(tmp_path):
+    """상태 축은 TERM104(정책)만 가른다 — 혼용 사실(TERM100/101)은 그대로 보고한다."""
+    ws = make_ws(tmp_path, {"a.md": "데이터세트를 만듭니다.\n\n데이터 세트를 씁니다.\n"})
+    assert "TERM100" in [d.rule for d in run(ws, ADMITTED)]
+
+
+def test_term_match_requires_eojeol_boundary(tmp_path):
+    """'세트'가 '데이터세트' 안에서 매칭되면 안 된다 — Kiwi가 복합명사를 형태소로
+    쪼개므로 토큰 경계로는 부족하고 어절 경계로 판정해야 한다. 조사는 허용."""
+    from ttoryeot.analysis.terms.dictionary import build_symbol_table
+
+    entries = [TermEntry(canonical="세트")]
+    ws = make_ws(tmp_path / "compound", {"a.md": "데이터세트를 만듭니다.\n"})
+    assert build_symbol_table(ws, entries)["세트"] == []
+
+    ws = make_ws(tmp_path / "spaced", {"a.md": "세트를 만듭니다.\n"})
+    assert len(build_symbol_table(ws, entries)["세트"]) == 1
 
 
 def test_load_dictionary(tmp_path):
