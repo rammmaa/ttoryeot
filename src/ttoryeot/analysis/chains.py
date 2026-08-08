@@ -42,6 +42,11 @@ class NounChainAnalyzer:
                 n = len(np.text.split())
                 if n <= max_eojeol:
                     continue
+                # 라틴 전용 런(영어 제목·영어 문장 인용)은 한국어 명사 나열
+                # 모호성이 아니다 — 실측에서 발화 노이즈의 최대 축(fe-news 64%,
+                # react 71%)이었다. 한글이 최소 한 자는 있어야 대상이다.
+                if not any("가" <= ch <= "힣" for ch in np.text):
+                    continue
                 yield Diagnostic(
                     rule="AMB101", severity="info",
                     message=(

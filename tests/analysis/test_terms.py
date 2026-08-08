@@ -285,8 +285,8 @@ def test_term101_message_includes_both_counts(tmp_path):
     })
     diags = [d for d in run(ws) if d.rule == "TERM101"]
     assert len(diags) == 1
-    assert "'데이터셋'(1회)" in diags[0].message
-    assert "'데이터세트'(2회)" in diags[0].message
+    assert "'데이터셋'(전체 1회)" in diags[0].message
+    assert "'데이터세트'(전체 2회)" in diags[0].message
 
 
 def test_term100_message_includes_both_counts(tmp_path):
@@ -295,8 +295,8 @@ def test_term100_message_includes_both_counts(tmp_path):
     })
     diags = [d for d in run(ws) if d.rule == "TERM100"]
     assert len(diags) == 1
-    assert "'데이터셋'(1회)" in diags[0].message
-    assert "'데이터세트'(1회)" in diags[0].message
+    assert "'데이터셋'(전체 1회)" in diags[0].message
+    assert "'데이터세트'(전체 1회)" in diags[0].message
 
 
 def test_term101_evidence_lists_canonical_locations(tmp_path):
@@ -354,3 +354,44 @@ def test_frequency_evidence_does_not_move_diagnostic_positions(tmp_path):
     })
     got = {(d.rule, d.range.file, d.range.start_line) for d in run(ws)}
     assert got == {("TERM100", "a.md", 3), ("TERM101", "c.md", 1)}
+
+
+def test_frequency_counts_are_scoped_as_workspace_wide(tmp_path):
+    """검증 리뷰 지적 — 전역 빈도를 '같은 문서에서 혼용됩니다' 문장 안에 그대로
+    실으면 문서 내 빈도로 오독된다. '전체' 스코프 표식을 붙인다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n",
+        "b.md": "데이터세트를 봅니다. 데이터세트를 씁니다.\n",
+    })
+    t100 = [d for d in run(ws) if d.rule == "TERM100"]
+    assert t100 and "(전체 1회)" in t100[0].message and "(전체 3회)" in t100[0].message
+
+
+def test_evidence_locations_are_deduped_by_file_and_line(tmp_path):
+    """검증 리뷰 지적 — 정본이 한 줄에 여러 번 등장하면 같은 file:line이 3칸 예산을
+    다 소모해 다른 파일이 '외 N곳' 뒤로 접힌다. 표시 단위가 file:line이므로 같은
+    키는 하나로 접는다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트와 데이터세트와 데이터세트를 봅니다.\n",
+        "b.md": "데이터세트를 씁니다.\n",
+        "c.md": "데이터셋을 저장합니다.\n",
+    })
+    t101 = [d for d in run(ws) if d.rule == "TERM101"]
+    assert t101
+    ev = t101[0].evidence
+    assert "a.md:1 · b.md:1" in ev
+    assert "외" not in ev.split("주의")[0]  # 중복 접힘이 없으면 '외 N곳'이 필요 없다
+
+
+def test_absent_canonical_gets_distinct_message(tmp_path):
+    """검증 리뷰 지적 — 정본이 코퍼스에 0회면 \"'데이터세트'(전체 0회) 표기와
+    불일치\"는 자기모순 문장이다. 문형을 분기한다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터셋을 저장합니다.\n",
+        "b.md": "데이터 세트를 만듭니다.\n",
+    })
+    diags = [d for d in run(ws) if d.rule in ("TERM100", "TERM101")]
+    assert diags
+    for d in diags:
+        assert "0회) 표기와" not in d.message
+        assert "표기가 코퍼스에 등장하지 않습니다" in d.message

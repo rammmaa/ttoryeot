@@ -290,6 +290,9 @@ class TermAnalyzer:
         # '어디를 참고해 고칠까'를 알려줘야 진단이 행동으로 이어진다. symbol table은
         # 긴 표면형 우선으로 매칭해 문장 안 순서가 등장 순이 아닐 수 있으므로
         # 문서·줄·칸으로 정렬해 결정적으로 만든다.
+        # 빈도는 워크스페이스 전역값이므로 '같은 문서에서' 문장과 결합할 때
+        # 스코프 표식('전체')을 붙인다 — 문서 내 빈도로 오독되는 것을 막는다.
+        canonical_part = f"'{entry.canonical}'(전체 {canonical_n}회)"
         canonical_occs = sorted(
             (o for o in occs if o.surface == entry.canonical),
             key=lambda o: (o.doc_path, o.range.start_line, o.range.start_col),
@@ -298,12 +301,15 @@ class TermAnalyzer:
         def evidence(surface_n: int) -> str | None:
             parts: list[str] = []
             if canonical_occs:
+                # 표시 단위가 file:line이므로 같은 키는 하나로 접는다 — 한 줄에
+                # 여러 번 등장한 정본이 3칸 예산을 다 소모하면 안 된다.
                 # 최대 3곳까지만 — evidence가 코퍼스 크기에 비례해 자라면 안 된다.
-                shown = " · ".join(
-                    f"{o.doc_path}:{o.range.start_line}" for o in canonical_occs[:3]
-                )
-                if len(canonical_occs) > 3:
-                    shown += f" 외 {len(canonical_occs) - 3}곳"
+                locations = list(dict.fromkeys(
+                    f"{o.doc_path}:{o.range.start_line}" for o in canonical_occs
+                ))
+                shown = " · ".join(locations[:3])
+                if len(locations) > 3:
+                    shown += f" 외 {len(locations) - 3}곳"
                 parts.append(f"정본 '{entry.canonical}' 위치: {shown}")
             if canonical_n < surface_n:
                 # 사전의 canonical이 전역 빈도상 소수인 경계 케이스 — 방향은 그대로
@@ -321,9 +327,13 @@ class TermAnalyzer:
                     yield Diagnostic(
                         rule="TERM100", severity="warning",
                         message=(
-                            f"'{o.surface}'({counts[o.surface]}회)와(과) "
-                            f"'{entry.canonical}'({canonical_n}회) 표기가 "
-                            f"같은 문서에서 혼용됩니다."
+                            f"'{o.surface}'(전체 {counts[o.surface]}회)와(과) "
+                            + canonical_part
+                            + " 표기가 같은 문서에서 혼용됩니다."
+                            if canonical_n
+                            else f"'{o.surface}'(전체 {counts[o.surface]}회) 표기가 "
+                            f"같은 문서에서 혼용됩니다 — 사전 정본 "
+                            f"'{entry.canonical}' 표기가 코퍼스에 등장하지 않습니다."
                         ),
                         range=o.range,
                         evidence=evidence(counts[o.surface]),
@@ -335,8 +345,12 @@ class TermAnalyzer:
                     yield Diagnostic(
                         rule="TERM101", severity="warning",
                         message=(
-                            f"'{o.surface}'({counts[o.surface]}회)은(는) 다른 문서의 "
-                            f"'{entry.canonical}'({canonical_n}회) 표기와 불일치합니다."
+                            f"'{o.surface}'(전체 {counts[o.surface]}회)은(는) "
+                            f"다른 문서의 " + canonical_part + " 표기와 불일치합니다."
+                            if canonical_n
+                            else f"'{o.surface}'(전체 {counts[o.surface]}회)은(는) "
+                            f"사전 정본과 불일치합니다 — 정본 '{entry.canonical}' "
+                            f"표기가 코퍼스에 등장하지 않습니다."
                         ),
                         range=o.range,
                         evidence=evidence(counts[o.surface]),

@@ -41,7 +41,7 @@ _DETERMINER_TAGS = {"MM", "MMD"}
 # 아티팩트' 클래스, docs/research/2026-07-28-round3-residual-judgment.md).
 # 진짜 지시("그 결과를 저장한다")는 '결과' 뒤 조사가 런을 거기서 끊어 후속 구가
 # 접속 명사 하나로 끝난다. 이 구조 차이(런의 연속 여부)가 게이트다.
-CONNECTIVE_NOUNS = {"결과", "다음", "대신", "반면", "외", "밖", "후"}
+CONNECTIVE_NOUNS = {"결과", "다음", "대신", "반면", "외", "밖", "후", "이후"}
 
 
 INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
