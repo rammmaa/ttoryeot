@@ -94,6 +94,31 @@ def test_determiner_reference_at_word_boundary_still_extracted():
     assert [r.text for r in refs] == ["이 테이블"]
 
 
+def test_connective_geu_gyeolgwa_is_not_a_reference():
+    """'그 결과'가 접속부사어로 쓰이면 조사 없이 다음 명사구에 바로 붙는다 — 명사
+    런이 결과+사용자+경험으로 병합되어 ref가 다음 NP까지 삼킨다 (round-3 잔존 오탐의
+    '접속·명사화 아티팩트' 클래스, 2026-08-08 probe로 재확인: 런 head가 '경험').
+    런이 접속 명사를 지나 계속되면 지시가 아니다."""
+    doc = lower_document("a.md", "속도가 느렸다. 그 결과 사용자 경험이 나빠졌다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_connective_geu_daeum_is_not_a_reference():
+    """'그 다음'도 같은 구조 — probe 실측: 런 다음+배포, head '배포'."""
+    doc = lower_document("a.md", "먼저 빌드한다. 그 다음 배포를 진행한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_genuine_geu_gyeolgwa_with_particle_is_kept():
+    """진짜 지시('그 결과를 저장한다')는 '결과' 뒤 조사(를/JKO)가 런을 거기서 끊어
+    head가 접속 명사 그 자체다 — 게이트가 이 경우를 건드리면 안 된다 (KEEP 핀)."""
+    doc = lower_document("a.md", "실험을 했다. 그 결과를 저장한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert [(r.text, r.head) for r in refs] == [("그 결과", "결과")]
+
+
 BLOCKQUOTE_SOURCE = """# 제목
 
 > 인용된 문장입니다.

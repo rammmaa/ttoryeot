@@ -149,3 +149,13 @@ def test_threshold_configurable(tmp_path):
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
     # 임계값 0이면 어떤 점수 차든 통과 → 진단 없음
     assert run(ws, {"reference": {"threshold": 0.0}}) == []
+
+
+def test_distributive_kakkak_suppressed_by_default(tmp_path):
+    """'이 각각'은 앞서 언급된 집합을 배분적으로 가리키는 generality다 — discourse
+    억제 목록의 기존 근거(선행사가 개별 NP가 아니라 집합/명제, Berry & Kamsties)와
+    동일 계열. 억제를 끄면 여전히 발화해야 한다 (추출이 아니라 억제 계층의 일임을 핀)."""
+    ws = make_ws(tmp_path, AMBIENT + "이 각각을 검토합니다.\n")
+    assert run(ws) == []
+    diags = run(ws, {"reference": {"suppress_heads": {"structural": [], "discourse": []}}})
+    assert [d.rule for d in diags] == ["REF101"]
