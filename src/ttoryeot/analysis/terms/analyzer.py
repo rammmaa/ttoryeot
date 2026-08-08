@@ -1,5 +1,5 @@
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Iterable
 
 from ttoryeot.analysis.base import AnalysisContext
@@ -280,6 +280,39 @@ class TermAnalyzer:
         docs_with_mixing = {
             doc_path for doc_path, surfaces in by_doc.items() if len(surfaces) > 1
         }
+        # 표면형별 워크스페이스 전역 빈도. 대칭 '불일치'는 어느 쪽을 고칠지 말해주지
+        # 않는다 — LanguageTool의 일관성 규칙이 텍스트 전역 빈도로 최빈형을 정본
+        # 삼듯 빈도를 증거로 싣는다. 다만 방향은 빈도가 아니라 **사전이 정한다**
+        # (사전이 정책이다). 또렷은 저장소 스코프라 문서 하나보다 표본이 크다.
+        counts = Counter(o.surface for o in occs)
+        canonical_n = counts.get(entry.canonical, 0)
+        # 정본 표기의 위치 — RedPen이 오류 메시지에 변이 출현 위치를 싣는 관행.
+        # '어디를 참고해 고칠까'를 알려줘야 진단이 행동으로 이어진다. symbol table은
+        # 긴 표면형 우선으로 매칭해 문장 안 순서가 등장 순이 아닐 수 있으므로
+        # 문서·줄·칸으로 정렬해 결정적으로 만든다.
+        canonical_occs = sorted(
+            (o for o in occs if o.surface == entry.canonical),
+            key=lambda o: (o.doc_path, o.range.start_line, o.range.start_col),
+        )
+
+        def evidence(surface_n: int) -> str | None:
+            parts: list[str] = []
+            if canonical_occs:
+                # 최대 3곳까지만 — evidence가 코퍼스 크기에 비례해 자라면 안 된다.
+                shown = " · ".join(
+                    f"{o.doc_path}:{o.range.start_line}" for o in canonical_occs[:3]
+                )
+                if len(canonical_occs) > 3:
+                    shown += f" 외 {len(canonical_occs) - 3}곳"
+                parts.append(f"정본 '{entry.canonical}' 위치: {shown}")
+            if canonical_n < surface_n:
+                # 사전의 canonical이 전역 빈도상 소수인 경계 케이스 — 방향은 그대로
+                # 사전을 따르되(위 정책), 사전 재검토를 유도하는 주의를 덧붙인다.
+                parts.append(
+                    f"주의: 정본 표기가 소수({canonical_n}회 vs {surface_n}회)입니다"
+                )
+            return " — ".join(parts) or None
+
         # TERM100: 한 문서 안에 두 표기 — 혼용 문서마다 모두 보고한다 (한 문서에서
         # 멈추면 그 뒤 문서들의 TERM100/TERM101이 통째로 유실된다).
         for doc_path in docs_with_mixing:
@@ -287,8 +320,13 @@ class TermAnalyzer:
                 if o.doc_path == doc_path and o.surface != entry.canonical:
                     yield Diagnostic(
                         rule="TERM100", severity="warning",
-                        message=f"'{o.surface}'와(과) '{entry.canonical}' 표기가 같은 문서에서 혼용됩니다.",
+                        message=(
+                            f"'{o.surface}'({counts[o.surface]}회)와(과) "
+                            f"'{entry.canonical}'({canonical_n}회) 표기가 "
+                            f"같은 문서에서 혼용됩니다."
+                        ),
                         range=o.range,
+                        evidence=evidence(counts[o.surface]),
                     )
         # TERM101: 문서 간 혼용 — 이미 TERM100으로 보고된 문서는 중복 보고하지 않는다.
         if len(all_surfaces) > 1:
@@ -296,8 +334,12 @@ class TermAnalyzer:
                 if o.surface != entry.canonical and o.doc_path not in docs_with_mixing:
                     yield Diagnostic(
                         rule="TERM101", severity="warning",
-                        message=f"'{o.surface}'은(는) 다른 문서의 '{entry.canonical}' 표기와 불일치합니다.",
+                        message=(
+                            f"'{o.surface}'({counts[o.surface]}회)은(는) 다른 문서의 "
+                            f"'{entry.canonical}'({canonical_n}회) 표기와 불일치합니다."
+                        ),
                         range=o.range,
+                        evidence=evidence(counts[o.surface]),
                     )
 
     def _conflicting_definitions(

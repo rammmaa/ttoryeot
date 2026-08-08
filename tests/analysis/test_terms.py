@@ -271,3 +271,86 @@ def test_load_dictionary(tmp_path):
     )
     entries = load_term_dictionary(p)
     assert entries[0].canonical == "데이터세트"
+
+
+# ── 다수결 빈도 증거 (LanguageTool 일관성 규칙·RedPen 관행) ──────────────────
+# 대칭 '불일치'는 어느 쪽을 고칠지 말해주지 않는다. 워크스페이스 전역 빈도와
+# 정본 위치를 실어 방향 있는 제안으로 만든다.
+
+
+def test_term101_message_includes_both_counts(tmp_path):
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n\n데이터세트를 저장합니다.\n",
+        "b.md": "데이터셋을 저장합니다.\n",
+    })
+    diags = [d for d in run(ws) if d.rule == "TERM101"]
+    assert len(diags) == 1
+    assert "'데이터셋'(1회)" in diags[0].message
+    assert "'데이터세트'(2회)" in diags[0].message
+
+
+def test_term100_message_includes_both_counts(tmp_path):
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n"
+    })
+    diags = [d for d in run(ws) if d.rule == "TERM100"]
+    assert len(diags) == 1
+    assert "'데이터셋'(1회)" in diags[0].message
+    assert "'데이터세트'(1회)" in diags[0].message
+
+
+def test_term101_evidence_lists_canonical_locations(tmp_path):
+    """RedPen은 오류 메시지에 모든 변이 출현 위치를 싣는다 — 수정하러 갈 곳을
+    알려줘야 진단이 행동으로 이어진다. 정본 표기의 파일:줄을 evidence에 싣는다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n",
+        "b.md": "데이터셋을 저장합니다.\n",
+    })
+    diags = [d for d in run(ws) if d.rule == "TERM101"]
+    assert len(diags) == 1
+    assert diags[0].evidence is not None
+    assert "정본 '데이터세트' 위치: a.md:1" in diags[0].evidence
+
+
+def test_term101_evidence_folds_beyond_three_locations(tmp_path):
+    """정본 위치는 최대 3곳까지만 — 초과분은 '외 N곳'으로 접는다 (evidence가
+    코퍼스 크기에 비례해 자라면 안 된다)."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n\n데이터세트를 저장합니다.\n",
+        "b.md": "데이터세트를 조회합니다.\n",
+        "c.md": "데이터세트를 삭제합니다.\n",
+        "d.md": "데이터셋을 사용합니다.\n",
+    })
+    diags = [d for d in run(ws) if d.rule == "TERM101"]
+    assert len(diags) == 1
+    ev = diags[0].evidence
+    # 정렬(문서·줄) 기준 처음 3곳만 보이고 나머지는 접힌다
+    assert "a.md:1" in ev and "a.md:3" in ev and "b.md:1" in ev
+    assert "c.md:1" not in ev
+    assert "외 1곳" in ev
+
+
+def test_minority_canonical_direction_follows_dictionary_with_notice(tmp_path):
+    """사전의 canonical이 전역 빈도상 소수여도 방향은 사전을 따른다 — 사전이
+    정책이다. 다만 evidence의 주의 문구로 사전 재검토를 유도한다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터셋을 만듭니다. 데이터셋을 저장합니다.\n\n데이터셋을 조회합니다.\n",
+        "b.md": "데이터세트를 사용합니다.\n",
+    })
+    diags = [d for d in run(ws) if d.rule == "TERM101"]
+    # 진단은 여전히 alias('데이터셋') 위치에 달린다 — 다수라고 정본이 되지 않는다
+    assert diags and all(d.range.file == "a.md" for d in diags)
+    assert all(
+        "주의: 정본 표기가 소수(1회 vs 3회)입니다" in d.evidence for d in diags
+    )
+
+
+def test_frequency_evidence_does_not_move_diagnostic_positions(tmp_path):
+    """메시지·evidence 보강은 표시 계층의 변화일 뿐 — 진단의 rule/file/line
+    (픽스처 golden의 비교 계약)은 불변이어야 한다."""
+    ws = make_ws(tmp_path, {
+        "a.md": "데이터세트를 만듭니다.\n\n데이터셋을 저장합니다.\n",
+        "c.md": "데이터셋을 사용합니다.\n",
+    })
+    got = {(d.rule, d.range.file, d.range.start_line) for d in run(ws)}
+    assert got == {("TERM100", "a.md", 3), ("TERM101", "c.md", 1)}
