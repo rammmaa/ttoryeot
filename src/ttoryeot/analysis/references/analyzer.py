@@ -9,6 +9,28 @@ from ttoryeot.ir.models import WorkspaceIR
 DEFAULTS = default_config()["reference"]
 
 
+def _self_evident_tie(unique: list, ref_head: str) -> bool:
+    """1위와 점수가 정확히 같은 동점 집합에서 지시어 head와 일치하는 후보가 유일하면
+    True — 독자가 head로 자명하게 해소하므로 발화하지 않는다.
+
+    round-3 잔존 재판정의 '자명한 1위' 클래스(5/28건, 예: k8s의 '해당 파드'에
+    '파드' 0.925 = '노드' 0.925 — 현행 가중치 기준 실측)가 근거다. 세 가지 좁힘이 전부 의도적이다:
+
+    - **exact tie만**: 시드 벤치의 '해당 데이터'는 0.68 vs 0.51로 동점이 아니다 —
+      근사 동점(gap<threshold)까지 확장하면 시드 recall이 죽는다. 확장은 라벨
+      데이터가 생긴 뒤의 일이다.
+    - **strict equality만**: 스코어러의 head_match 자질은 부분 문자열 포함
+      (ref.head in phrase.text)도 인정하지만, 독자의 자명한 해소는 head 그 자체의
+      일치를 요구한다.
+    - **정확히 하나만**: 0개면 head가 아무 단서도 아니고, 2개 이상이면 head가
+      아무것도 갈라주지 않는다('사용자 테이블' vs '주문 테이블') — 기존대로 발화.
+    """
+    tied = [c for c in unique if c.score == unique[0].score]
+    if len(tied) < 2:
+        return False
+    return sum(1 for c in tied if c.phrase.head == ref_head) == 1
+
+
 def _explain(top: list) -> str:
     """상위 후보의 자질별 원점수를 근거 문자열로 분해한다 (Gleich 외 2010 —
     왜 모호한지를 설명해 작성자를 교육한다)."""
@@ -61,6 +83,10 @@ class ReferenceAnalyzer:
                             and unique[0].score >= cfg.get("min_top_score", 0.0)
                             and (unique[0].score - unique[1].score) < cfg["threshold"]
                         ):
+                            # 발화 판정 직전의 동점 깨기 — 정확 동점이면서 head 일치
+                            # 후보가 유일하면 침묵 (근거는 _self_evident_tie docstring)
+                            if _self_evident_tie(unique, ref.head):
+                                continue
                             yield Diagnostic(
                                 rule="REF101", severity="warning",
                                 message=f"'{ref.text}'의 지시 대상이 불명확합니다.",

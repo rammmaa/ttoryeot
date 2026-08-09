@@ -26,6 +26,19 @@ terms:
   variant_minority_ratio: 0.1
   variant_minority_max_count: 3
 
+ambiguity:
+  # true면 상한을 넘는 명사 나열(어절 연쇄)을 AMB101 info로 플래그.
+  # 근거는 독립적인 두 계보가 같은 상한에 수렴한다는 것 — ASD-STE100 Rule 2.1
+  # "복합명사 3단어 이하"(단어 간 연결이 불명하면 모호성이 생긴다)와 미 연방
+  # plain language 지침 avoid-noun-strings "명사 3개를 넘으면 견딜 수 없다".
+  # 한국어는 핵어 후치 + 조사 생략 명사 나열이 관용이라 영어보다 연쇄가 더 길게
+  # 자란다. opt-in인 이유: 기술문서 장르 특성상 발화율이 높을 수 있어, 외부
+  # 코퍼스 실측 후 통합 단계에서 기본값을 재검토한다.
+  noun_chain: false
+  # STE 2.1·plain language의 3단어 상한을 어절 단위로 옮긴 값. '이하 허용'이므로
+  # 진단은 이 값을 초과할 때만 낸다.
+  max_noun_chain_eojeol: 3
+
 reference:
   window: 5
   # 유해 모호성(nocuous ambiguity) 임계 — 1·2위 후보의 점수차가 이 값 미만이면
@@ -50,4 +63,6 @@ reference:
   # discourse는 선행 명제를 가리키는 담화 지시로, 둘 다 NP 후보 랭킹의 대상이 아니다.
   suppress_heads:
     structural: [글, 문서, 예시, 예제, 코드, 데모, 영상, 세션, 링크, 페이지, 포스트, 아티클, 블로그, 가이드]
-    discourse: [문제, 경우, 방법, 방식, 원칙, 변화, 내용, 이유, 과정, 점]
+    # '각각'은 앞서 언급된 집합을 배분적으로 가리키는 generality(Berry & Kamsties)로,
+    # 이 목록의 기존 근거(선행사가 개별 NP가 아님)와 동일하다 (round-4 실측 추가).
+    discourse: [문제, 경우, 방법, 방식, 원칙, 변화, 내용, 이유, 과정, 점, 각각]

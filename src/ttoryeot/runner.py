@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from ttoryeot.analysis.base import AnalysisContext
+from ttoryeot.analysis.chains import NounChainAnalyzer
 from ttoryeot.analysis.references.analyzer import ReferenceAnalyzer
 from ttoryeot.analysis.terms.analyzer import TermAnalyzer
 from ttoryeot.analysis.terms.dictionary import load_term_dictionary
@@ -24,7 +25,10 @@ def run_workspace(
                 range=SourceRange(file=doc.path, start_line=1, start_col=1,
                                   end_line=1, end_col=1, start_offset=0, end_offset=0),
             ))
-    analyzers = [ReferenceAnalyzer()]
+    # NounChainAnalyzer는 항상 구성하고 off는 내부에서 no-op으로 처리한다
+    # (TERM103~105 패턴) — known_rules에 AMB101이 있어야 억제 프라그마가
+    # INT002 오보 없이 동작한다.
+    analyzers = [ReferenceAnalyzer(), NounChainAnalyzer()]
     if terms_path is not None:
         # 없는 파일을 조용히 건너뛰지 않는다 — load가 던지는 에러가 정직하다.
         # (CLI는 사전에 존재를 검사해 친절한 메시지 + exit 2로 처리한다.)

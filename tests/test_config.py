@@ -68,3 +68,7 @@ def test_code_defaults_are_sourced_from_yaml():
     from ttoryeot.analysis.terms import analyzer as terms_analyzer
 
     assert terms_analyzer._TERM_DEFAULTS == default_config()["terms"]
+
+    from ttoryeot.analysis import chains
+
+    assert chains.DEFAULTS == default_config()["ambiguity"]

@@ -149,3 +149,134 @@ def test_threshold_configurable(tmp_path):
         "사용자 테이블과 주문 테이블을 조인합니다.\n\n해당 데이터를 저장합니다.\n")
     # 임계값 0이면 어떤 점수 차든 통과 → 진단 없음
     assert run(ws, {"reference": {"threshold": 0.0}}) == []
+
+
+# ── 정확 동점의 head 일치 자명성 (round-3 잔존 클래스 5/28) ──────────────────
+#
+# 실제 문장으로 정확 동점을 만드는 것은 Kiwi의 문맥 의존 분해 때문에 취약하다.
+# 동점 판정은 순수 함수(_self_evident_tie)를 ScoredCandidate 직접 구성으로 검증하고,
+# 분석기 배선은 손으로 만든 IR(결정론적 점수)로 확인한다.
+
+def _span(start: int, end: int):
+    from ttoryeot.ir.source import SourceRange
+
+    return SourceRange(file="doc.md", start_line=1, start_col=start + 1,
+                       end_line=1, end_col=end + 1,
+                       start_offset=start, end_offset=end)
+
+
+def _cand(text: str, head: str, score: float, start: int = 0):
+    from ttoryeot.analysis.references.candidates import ScoredCandidate
+    from ttoryeot.ir.models import NounPhrase
+
+    return ScoredCandidate(
+        phrase=NounPhrase(text=text, head=head, range=_span(start, start + len(text))),
+        score=score,
+    )
+
+
+def test_exact_tie_with_unique_head_match_is_self_evident():
+    """k8s 실측 사례 — '해당 파드'에 후보 '파드' 0.90 = '노드' 0.90 정확 동점.
+    동점 집합에서 head가 일치하는 후보가 유일하면 독자에겐 자명하다 (round-3
+    잔존 재판정의 '자명한 1위' 클래스)."""
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("파드", "파드", 0.90), _cand("노드", "노드", 0.90, start=10)]
+    assert _self_evident_tie(unique, "파드") is True
+
+
+def test_exact_tie_with_two_head_matches_is_not_self_evident():
+    """'사용자 테이블' vs '주문 테이블'에 '해당 테이블' — 동점이고 head도 둘 다
+    일치하면 head가 아무것도 갈라주지 않는다 → 여전히 발화."""
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("사용자 테이블", "테이블", 0.90),
+              _cand("주문 테이블", "테이블", 0.90, start=10)]
+    assert _self_evident_tie(unique, "테이블") is False
+
+
+def test_exact_tie_without_head_match_is_not_self_evident():
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("노드", "노드", 0.90), _cand("볼륨", "볼륨", 0.90, start=10)]
+    assert _self_evident_tie(unique, "파드") is False
+
+
+def test_near_tie_is_never_self_evident():
+    """설계의 핵심 제약 — 시드 벤치의 '해당 데이터'는 0.68 vs 0.51로 동점이 아니다.
+    근사 동점(gap<threshold)까지 확장하면 시드 recall이 죽는다. exact tie에만 적용."""
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("데이터", "데이터", 0.68), _cand("테이블", "테이블", 0.51, start=10)]
+    assert _self_evident_tie(unique, "데이터") is False
+
+
+def test_head_match_below_tie_set_does_not_count():
+    """동점 집합은 1위와 점수가 '정확히 같은' 후보만이다 — 그 아래 순위의 head 일치는
+    동점을 깨는 근거가 아니다."""
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("노드", "노드", 0.90), _cand("볼륨", "볼륨", 0.90, start=10),
+              _cand("파드", "파드", 0.85, start=20)]
+    assert _self_evident_tie(unique, "파드") is False
+
+
+def test_tie_break_uses_strict_head_equality():
+    """스코어러의 head_match는 부분 문자열 포함(ref.head in phrase.text)도 인정하지만,
+    동점 깨기는 strict equality만 쓴다 — '파드 노드'(head=노드)는 텍스트에 '파드'가
+    있어도 head 일치가 아니므로, 일치는 '파드' 하나뿐 → 자명."""
+    from ttoryeot.analysis.references.analyzer import _self_evident_tie
+
+    unique = [_cand("파드", "파드", 0.895), _cand("파드 노드", "노드", 0.895, start=10)]
+    assert _self_evident_tie(unique, "파드") is True
+
+
+def _tie_workspace(np_specs: list[tuple[str, str]], ref_head: str):
+    """손으로 만든 IR — 후보 전부 같은 문장(같은 distance·recency), 토큰 없음(같은
+    role)이라 head_match 자질까지 같으면 점수가 결정론적으로 정확 동점이 된다."""
+    from ttoryeot.ir.models import (Block, DocumentIR, NounPhrase,
+                                    ReferenceExpression, SentenceIR, WorkspaceIR)
+
+    phrases, cursor = [], 0
+    for text, head in np_specs:
+        phrases.append(NounPhrase(text=text, head=head,
+                                  range=_span(cursor, cursor + len(text))))
+        cursor += len(text) + 2
+    sent1 = SentenceIR(text="선행 문장", range=_span(0, cursor), noun_phrases=phrases)
+    ref_text = f"해당 {ref_head}"
+    ref = ReferenceExpression(text=ref_text, demonstrative="해당", head=ref_head,
+                              range=_span(cursor + 1, cursor + 1 + len(ref_text)))
+    sent2 = SentenceIR(text=ref_text, range=_span(cursor + 1, cursor + 10),
+                       references=[ref])
+    block = Block(kind="paragraph", range=_span(0, cursor + 10),
+                  sentences=[sent1, sent2])
+    doc = DocumentIR(path="doc.md", content_hash="x", blocks=[block])
+    return WorkspaceIR(root=".", documents=[doc])
+
+
+def test_analyzer_silences_exact_tie_with_unique_head_match():
+    """배선 확인 — 발화 판정 직전에 동점 자명성 검사가 실제로 개입해야 한다."""
+    ws = _tie_workspace([("파드", "파드"), ("파드 노드", "노드")], "파드")
+    assert run(ws) == []
+
+
+def test_analyzer_still_flags_tie_with_two_head_matches():
+    """동점 + head 일치 2개면 기존대로 발화하고, candidates·evidence 분해도
+    동점 상황에서 일관되게 남아야 한다."""
+    ws = _tie_workspace([("사용자 테이블", "테이블"), ("주문 테이블", "테이블")], "테이블")
+    diags = run(ws)
+    assert [d.rule for d in diags] == ["REF101"]
+    assert [c.text for c in diags[0].candidates] == ["사용자 테이블", "주문 테이블"]
+    assert diags[0].candidates[0].score == diags[0].candidates[1].score
+    for feature in ("distance", "role", "head_match", "recency"):
+        assert feature in diags[0].evidence
+
+
+def test_distributive_kakkak_suppressed_by_default(tmp_path):
+    """'이 각각'은 앞서 언급된 집합을 배분적으로 가리키는 generality다 — discourse
+    억제 목록의 기존 근거(선행사가 개별 NP가 아니라 집합/명제, Berry & Kamsties)와
+    동일 계열. 억제를 끄면 여전히 발화해야 한다 (추출이 아니라 억제 계층의 일임을 핀)."""
+    ws = make_ws(tmp_path, AMBIENT + "이 각각을 검토합니다.\n")
+    assert run(ws) == []
+    diags = run(ws, {"reference": {"suppress_heads": {"structural": [], "discourse": []}}})
+    assert [d.rule for d in diags] == ["REF101"]

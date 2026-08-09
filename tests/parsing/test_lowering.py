@@ -94,6 +94,31 @@ def test_determiner_reference_at_word_boundary_still_extracted():
     assert [r.text for r in refs] == ["이 테이블"]
 
 
+def test_connective_geu_gyeolgwa_is_not_a_reference():
+    """'그 결과'가 접속부사어로 쓰이면 조사 없이 다음 명사구에 바로 붙는다 — 명사
+    런이 결과+사용자+경험으로 병합되어 ref가 다음 NP까지 삼킨다 (round-3 잔존 오탐의
+    '접속·명사화 아티팩트' 클래스, 2026-08-08 probe로 재확인: 런 head가 '경험').
+    런이 접속 명사를 지나 계속되면 지시가 아니다."""
+    doc = lower_document("a.md", "속도가 느렸다. 그 결과 사용자 경험이 나빠졌다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_connective_geu_daeum_is_not_a_reference():
+    """'그 다음'도 같은 구조 — probe 실측: 런 다음+배포, head '배포'."""
+    doc = lower_document("a.md", "먼저 빌드한다. 그 다음 배포를 진행한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_genuine_geu_gyeolgwa_with_particle_is_kept():
+    """진짜 지시('그 결과를 저장한다')는 '결과' 뒤 조사(를/JKO)가 런을 거기서 끊어
+    head가 접속 명사 그 자체다 — 게이트가 이 경우를 건드리면 안 된다 (KEEP 핀)."""
+    doc = lower_document("a.md", "실험을 했다. 그 결과를 저장한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert [(r.text, r.head) for r in refs] == [("그 결과", "결과")]
+
+
 BLOCKQUOTE_SOURCE = """# 제목
 
 > 인용된 문장입니다.
@@ -153,3 +178,27 @@ def test_load_workspace_records_parse_error(tmp_path: Path):
     by_path = {d.path: d for d in ws.documents}
     assert by_path["good.md"].parse_error is None
     assert by_path["bad.md"].parse_error is not None
+
+
+def test_connective_geu_ihu_is_not_a_reference():
+    """'그 이후'도 접속부사어 클래스 — 검증 리뷰가 실측한 잔존 오탐
+    (fe-news issues/2020-04.md '그 이후 iOS'). probe: 런이 이후+iOS+시장으로 계속."""
+    doc = lower_document("a.md", "앱을 출시했다. 그 이후 iOS 시장이 커졌다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []
+
+
+def test_genuine_geu_ihu_with_particle_is_kept():
+    doc = lower_document("a.md", "장애가 있었다. 그 이후를 복기한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert [(r.text, r.head) for r in refs] == [("그 이후", "이후")]
+
+
+def test_connective_gate_recall_loss_is_a_known_limitation():
+    """의도된 트레이드오프의 핀 — '그 결과 파일'처럼 접속 명사가 진짜 복합 명사구의
+    수식어인 경우도 게이트에 걸려 침묵한다. 접속 용법과 표면 구조가 동일해 구분
+    불가하며, fe-news 제거분 전수 검증에서 진짜 지시 손실은 0건이었다(검증 리뷰).
+    라벨 데이터가 생기면 이 클래스의 실손실을 측정해 게이트를 재검토하라."""
+    doc = lower_document("a.md", "빌드를 돌렸다. 그 결과 파일을 정리한다.\n", KIWI)
+    refs = [r for b in doc.blocks for s in b.sentences for r in s.references]
+    assert refs == []

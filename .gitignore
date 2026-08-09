@@ -5,3 +5,4 @@ uv.lock
 benchmark/raw/
 benchmark/results/*
 corpus/external/
+.claude/

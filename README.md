@@ -28,11 +28,12 @@
 ```
 $ ttoryeot lint docs/ --terms terms.yaml
 
-docs/deploy.md:3 TERM101 '데이터셋'은(는) 다른 문서의 '데이터세트' 표기와 불일치합니다.
+docs/deploy.md:3 TERM101 '데이터셋'(전체 1회)은(는) 다른 문서의 '데이터세트'(전체 1회) 표기와 불일치합니다.
 docs/pipeline.md:3 TERM102 '데이터세트'의 정의가 다른 문서의 정의와 충돌합니다.
 docs/pipeline.md:7 REF101 '해당 데이터'의 지시 대상이 불명확합니다.
     후보 0.68  데이터세트
     후보 0.51  주문 테이블
+    후보 0.47  사용자 테이블
 ```
 
 ## 구조
@@ -41,7 +42,7 @@ docs/pipeline.md:7 REF101 '해당 데이터'의 지시 대상이 불명확합니
 Markdown 저장소
    ↓ parse_blocks     markdown-it-py, 원문 오프셋 보존
    ↓ lowering         Kiwi 형태소 분석 → Document IR (문장·토큰·명사구·지시어)
-   ↓ analysis passes  용어 심벌 테이블(TERM1xx) · 지시어 해석 위험(REF101)
+   ↓ analysis passes  용어 심벌 테이블(TERM1xx) · 지시어 해석 위험(REF101) · 명사 연쇄(AMB101)
    ↓ diagnostics      파일·줄 위치 + 후보·근거가 달린 재현 가능한 진단
 ```
 

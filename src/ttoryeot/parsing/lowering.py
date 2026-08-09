@@ -35,6 +35,14 @@ FUSED_DEMONSTRATIVES = {"해당", "위"}
 DETERMINER_DEMONSTRATIVES = {"이", "그"}
 _DETERMINER_TAGS = {"MM", "MMD"}
 
+# '그 결과/그 다음'류가 접속부사어로 쓰일 때는 조사 없이 다음 명사구에 바로 붙어
+# 명사 런이 접속 명사를 지나 계속된다 ("그 결과 사용자 경험이 나빠졌다" → 런
+# 결과+사용자+경험, ref가 다음 NP까지 삼킨다 — round-3 잔존 오탐의 '접속·명사화
+# 아티팩트' 클래스, docs/research/2026-07-28-round3-residual-judgment.md).
+# 진짜 지시("그 결과를 저장한다")는 '결과' 뒤 조사가 런을 거기서 끊어 후속 구가
+# 접속 명사 하나로 끝난다. 이 구조 차이(런의 연속 여부)가 게이트다.
+CONNECTIVE_NOUNS = {"결과", "다음", "대신", "반면", "외", "밖", "후", "이후"}
+
 
 INLINE_CODE = re.compile(r"``.+?``|`[^`\n]+`")
 _INLINE_CODE = INLINE_CODE  # 하위 호환 별칭
@@ -240,6 +248,16 @@ def _determiner_references(
             continue
         np = _find_following_phrase(source, phrases, tok.range.end_offset)
         if np is None:
+            continue
+        if (
+            nxt.form in CONNECTIVE_NOUNS
+            and np.range.end_offset > nxt.range.end_offset
+        ):
+            # 명사 런이 접속 명사를 지나 계속된다 → 접속부사어 용법이므로 지시가
+            # 아니다. head 비교(np.head != nxt.form)가 아니라 런 연속 여부(오프셋)로
+            # 판정하는 이유: "그 결과 분석 결과가…"처럼 런의 마지막 명사가 우연히
+            # 같은 표면형이어도 접속 용법이다. head가 접속 명사 그 자체인 경우
+            # (뒤 조사가 런을 끊음, "그 결과를")만 진짜 지시로 유지한다.
             continue
         start = tok.range.start_offset
         refs.append(
