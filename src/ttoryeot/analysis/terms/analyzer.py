@@ -311,7 +311,9 @@ class TermAnalyzer:
                 if len(locations) > 3:
                     shown += f" 외 {len(locations) - 3}곳"
                 parts.append(f"정본 '{entry.canonical}' 위치: {shown}")
-            if canonical_n < surface_n:
+            if 0 < canonical_n < surface_n:
+                # canonical_n == 0이면 메시지가 이미 '코퍼스에 등장하지 않습니다'로
+                # 분기하므로 '소수(0회)' 주의까지 겹치면 모순 문장이 된다.
                 # 사전의 canonical이 전역 빈도상 소수인 경계 케이스 — 방향은 그대로
                 # 사전을 따르되(위 정책), 사전 재검토를 유도하는 주의를 덧붙인다.
                 parts.append(
@@ -321,7 +323,9 @@ class TermAnalyzer:
 
         # TERM100: 한 문서 안에 두 표기 — 혼용 문서마다 모두 보고한다 (한 문서에서
         # 멈추면 그 뒤 문서들의 TERM100/TERM101이 통째로 유실된다).
-        for doc_path in docs_with_mixing:
+        # set 순회는 PYTHONHASHSEED에 따라 순서가 흔들린다 — 진단 순서까지
+        # 결정적이어야 한다는 주장(README)에 맞춰 정렬한다.
+        for doc_path in sorted(docs_with_mixing):
             for o in occs:
                 if o.doc_path == doc_path and o.surface != entry.canonical:
                     yield Diagnostic(

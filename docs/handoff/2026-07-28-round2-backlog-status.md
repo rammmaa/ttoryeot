@@ -97,8 +97,20 @@ worktree 격리 병렬 TDD 4건 + 기능별 적대적 검증(전부 approve, cri
 
 외부 발화(REF101): fe-news 191→**186**(11.7/1k) · react 976→**963**(8.0/1k) ·
 k8s 2107→**2078**(22.4/1k). 시드 F1 0.750·golden 6세트 불변, 테스트 172→205.
-검증 정오: tiebreak 침묵은 21건이 아니라 **22건**(react 3건 — CONTRIBUTING.md '해당 API',
-thinking-in-react '이 컴포넌트', useInsertionEffect '그 결과 cleanup').
+
+감소 기여 분해 (최종 리뷰가 시뮬레이션으로 검증 — 기능 단독 수치를 그대로 더하면
+중복 계상된다):
+
+| | tiebreak | 접속 게이트 | '각각' |
+|---|---|---|---|
+| fe-news (−5) | 0 | 5 | 0 |
+| react (−13) | 1 | 11 | 1 |
+| k8s (−29) | 18 | 8~9 | 2 |
+
+tiebreak 단독 측정은 21건이었으나 **접속 게이트가 2건을 먼저 제거**해(react
+useInsertionEffect '그 결과 cleanup' 포함) 통합 후 순기여는 **19건**이다. 검증
+리뷰가 언급한 CONTRIBUTING.md '해당 API'는 측정 범위(`src/content`) 밖 파일이라
+어느 수치에도 들어가지 않는다.
 
 ## 다음 백로그 (round-4 후보)
 
