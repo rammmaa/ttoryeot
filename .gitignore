@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 uv.lock
 *.md
+!/README.md
 benchmark/data/
 benchmark/raw/
 benchmark/results/
